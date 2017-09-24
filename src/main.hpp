@@ -10,6 +10,8 @@ class Package
 {
 public:
     std::string name;
+    std::string version;
+    std::string author;
     std::string dir;
     std::vector<std::string> dependencies;
     std::list<FileAction> files;

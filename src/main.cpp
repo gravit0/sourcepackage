@@ -20,7 +20,12 @@ vector<string> parsecmd(std::string cmd)
     while(true)
     {
         int pos = cmd.find(':',opos);
-        if(pos <= 0) break;
+        if(pos <= 0)
+        {
+            std::string value = cmd.substr(opos,pos - cmd.size());
+            list.push_back(value);
+            break;
+        }
         std::string value = cmd.substr(opos,pos - opos);
         list.push_back(value);
         opos = pos + 1;
@@ -53,7 +58,20 @@ void Package::install()
     for(auto i = files.begin();i!=files.end();++i)
     {
         std::string filename = (*i).filename;
-        symlink((rootdir+filename).c_str(),(dir + (*i).filename).c_str());
+        if((*i).action == 2) symlink((rootdir+filename).c_str(),(dir + (*i).filename).c_str());
+        else if((*i).action == 1)
+        {
+            std::string buf;
+            std::fstream f(rootdir+filename,std::ios_base::in | std::ios_base::binary);
+            std::fstream f2(dir+filename,std::ios_base::out  | std::ios_base::binary);
+            while(!f.eof())
+            {
+                f >> buf;
+                f2 << buf;
+            }
+            f.close();
+            f2.close();
+        }
     }
     isInstalled = true;
 }
@@ -77,6 +95,41 @@ void Package::remove_()
         }
     }
 }
+//Package* get_pack(std::string dir)
+//{
+//    std::fstream f;
+//    f.open(dir + "/config.cfg",std::ios_base::in);
+//    if(!f.fail())
+//    {
+//        Package* pack = new Package();
+//        pack->isInstalled = false;
+//        pack->isDependence = false;
+//        pack->isStartInstall = false;
+//        std::string info;
+//        std::getline(f,info);
+//        int pos = info.find(':');
+//        std::string name = info.substr(0,pos);
+//        std::string dep = info.substr(pos + 1,info.size());
+//        pack->name = name;
+//        std::list<FileAction> files;
+//        while(std::getline(f,info))
+//        {
+//            FileAction t;
+//            int pos2 = info.find(' ');
+//            std::string act = info.substr(0,pos2);
+//            std::string name = info.substr(pos2 + 1,info.size());
+//            if(act == "cp") t.action = 1;
+//            else if(act == "ln") t.action = 2;
+//            t.filename = name;
+//            files.push_back(t);
+//        }
+//        pack->files = files;
+//        pack->dir = dir;
+//        packs.push_back(pack);
+//        return pack;
+//    }
+//    return nullptr;
+//}
 Package* get_pack(std::string dir)
 {
     std::fstream f;
@@ -88,23 +141,39 @@ Package* get_pack(std::string dir)
         pack->isDependence = false;
         pack->isStartInstall = false;
         std::string info;
-        std::getline(f,info);
-        int pos = info.find(':');
-        std::string name = info.substr(0,pos);
-        std::string dep = info.substr(pos + 1,info.size());
-        pack->name = name;
         std::list<FileAction> files;
+        std::string category;
+        std::string name;
+        int state = 0;
         while(std::getline(f,info))
         {
-            FileAction t;
-            int pos2 = info.find(' ');
-            std::string act = info.substr(0,pos2);
-            std::string name = info.substr(pos2 + 1,info.size());
-            if(act == "cp") t.action = 1;
-            else if(act == "ln") t.action = 2;
-            t.filename = name;
-            files.push_back(t);
+            if(info.size()<=1) continue;
+            if(info[0] == '[')
+            {
+                if(state == 0) {
+                    name=info.substr(1,info.size() - 2);
+                    state = 1; }
+                else { category=info.substr(1,info.size() - 2);  state = 2;}
+                continue;
+            }
+            if(state == 1) {
+                int pos = info.find('=');
+                if(pos < 0) continue;
+                std::string frist = info.substr(0,pos);
+                std::string last = info.substr(pos + 1,info.size());
+                if(frist == "version") pack->version = last;
+                else if(frist == "creator") pack->author = last;
+                continue;
+            }
+            if(state == 2) {
+                FileAction t;
+                if(category == "cp") t.action = 1;
+                else if(category == "ln") t.action = 2;
+                t.filename = info;
+                files.push_back(t);
+            }
         }
+        pack->name = name;
         pack->files = files;
         pack->dir = dir;
         packs.push_back(pack);
@@ -121,11 +190,13 @@ int main(int argc, char** argv)
 //    }
     //symlink("/tmp/r","/tmp/s");
     Package* z = get_pack("/tmp/testpack");
-    std::cout << z->name << std::endl;
+    std::cout << "Name: " << z->name << std::endl;
+    std::cout << "Version: " << z->version << std::endl;
+    std::cout << "Author: " << z->author << std::endl;
     for(auto i = z->files.begin();i!=z->files.end();++i)
     {
         std::string filename = (*i).filename;
-        std::cout << filename << std::endl;
+        std::cout << (*i).action << " " << filename << std::endl;
     }
     return 0;
     std::fstream f("/tmp/f",std::ios_base::in) ;
