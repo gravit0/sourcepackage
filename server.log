@@ -1,0 +1,17 @@
+[2016-Nov-26 18:19:22.000293] Load base command OK
+[2016-Nov-26 18:19:22.000377] Load test command OK
+[2016-Nov-26 18:19:22.000426] Start threads OK
+[2016-Nov-26 18:19:22.000485] Start local thread OK
+[2016-Nov-26 18:19:22.000571] Start database connection fail
+Can't connect to local MySQL server through socket '/run/mysqld/mysqld.sock' (2 "No such file or directory")
+OK
+[2016-Nov-26 18:19:22.062360] Server started
+ [2016-Dec-19 20:10:58.317081] Load base command OK
+[2016-Dec-19 20:10:58.317153] Load test command OK
+[2016-Dec-19 20:10:58.317182] Start threads OK
+[2016-Dec-19 20:10:58.317219] Start local thread OK
+[2016-Dec-19 20:10:58.317299] Start database connection fail
+Can't connect to MySQL server on '127.0.0.1' (111 "Connection refused")
+[2016-Dec-19 20:10:58.342402] Start server socket OK
+[2016-Dec-19 20:10:58.342515] Listen 127.0.0.1 8001
+[2016-Dec-19 20:10:58.342566] Server started
