@@ -8,7 +8,11 @@
 #include "main.hpp"
 #include <string.h>
 #include <list>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #pragma once
+
 using namespace std;
 std::list<Package*> packs;
 std::string packsdir;
@@ -40,6 +44,17 @@ Package* find_pack(std::string name)
     }
     return nullptr;
 }
+Package* unload_pack(std::string name)
+{
+    for(auto i = packs.begin();i!=packs.end();++i)
+    {
+        if((*i)->name == name) {
+            packs.erase(i);
+            delete (*i);
+        }
+    }
+    return nullptr;
+}
 void Package::install()
 {
     if(isStartInstall || isInstalled) return;
@@ -58,16 +73,33 @@ void Package::install()
     for(auto i = files.begin();i!=files.end();++i)
     {
         std::string filename = (*i).filename;
-        if((*i).action == 2) symlink((rootdir+filename).c_str(),(dir + (*i).filename).c_str());
+        if((*i).action == 2) symlink((dir + (*i).filename).c_str(),(rootdir+filename).c_str());
         else if((*i).action == 1)
         {
             std::string buf;
-            std::fstream f(rootdir+filename,std::ios_base::in | std::ios_base::binary);
-            std::fstream f2(dir+filename,std::ios_base::out  | std::ios_base::binary);
-            while(!f.eof())
-            {
-                f >> buf;
-                f2 << buf;
+            std::fstream f(dir+filename,std::ios_base::in | std::ios_base::binary);
+            std::fstream f2(rootdir+filename,std::ios_base::out  | std::ios_base::binary);
+            if (f) {
+                // get length of file:
+                f.seekg (0, f.end);
+                int length = f.tellg();
+                int buflength = length;
+                if(length > 8191) buflength = 8191;
+                f.seekg (0, f.beg);
+
+                char * buffer = new char [buflength];
+                while(length > 0) {
+                // read data as a block:
+                if(length < 8191) buflength = length;
+                f.read (buffer,buflength);
+                if (f)
+                  f2.write(buffer,buflength);
+                else
+                  std::cout << "error: only " << f.gcount() << " could be read";
+                // ...buffer contains the entire file...
+                length = length - buflength;
+                }
+                delete[] buffer;
             }
             f.close();
             f2.close();
@@ -163,6 +195,7 @@ Package* get_pack(std::string dir)
                 std::string last = info.substr(pos + 1,info.size());
                 if(frist == "version") pack->version = last;
                 else if(frist == "creator") pack->author = last;
+                else if(frist == "dependencies") pack->dependencies = parsecmd(last);
                 continue;
             }
             if(state == 2) {
@@ -181,6 +214,7 @@ Package* get_pack(std::string dir)
     }
     return nullptr;
 }
+static const char *optString = "dvs:";
 int main(int argc, char** argv)
 {
 //    if(argc < 2) {
@@ -189,49 +223,127 @@ int main(int argc, char** argv)
 
 //    }
     //symlink("/tmp/r","/tmp/s");
-    Package* z = get_pack("/tmp/testpack");
-    std::cout << "Name: " << z->name << std::endl;
-    std::cout << "Version: " << z->version << std::endl;
-    std::cout << "Author: " << z->author << std::endl;
-    for(auto i = z->files.begin();i!=z->files.end();++i)
-    {
-        std::string filename = (*i).filename;
-        std::cout << (*i).action << " " << filename << std::endl;
-    }
-    return 0;
-    std::fstream f("/tmp/f",std::ios_base::in) ;
-    std::string cmd;
-    while(true) {
-        f >> cmd;
-        std::vector<std::string> args = parsecmd(cmd);
-        std::cerr << args.size();
-        for(size_t i=0;i<args.size();i++)
-        {
-            std::cout << args.at(i) << std::endl;
+    int opt = getopt(argc,argv,optString);
+    bool daemon = false;
+    std::string sock_file = "/run/sp";
+    while( opt != -1 ) {
+            switch( opt ) {
+                case 'd':
+                    daemon = true;
+                    break;
+                case 's':
+                    sock_file = std::string(optarg);
+                    break;
+                case 'v':
+                    std::cout << "Source Package v 0.0.1" << std::endl;
+                    break;
+                default:
+                    /* сюда на самом деле попасть невозможно. */
+                    break;
+            }
+            opt = getopt( argc, argv, optString );
         }
-        std::string basecmd = args[0];
-        if(basecmd == "install")
-        {
-            std::string pckname = args[1];
-            Package* pck = find_pack(pckname);
-            if(pck == nullptr) pck = get_pack(packsdir+pckname);
-            pck->install();
-        }
-        else if(basecmd == "remove")
-        {
-            std::string pckname = args[1];
-            Package* pck = find_pack(pckname);
-            if(pck != nullptr) pck->remove_();
-        }
-        else if(basecmd == "load")
-        {
-            std::string pckdir = args[1];
-            get_pack(pckdir);
-        }
-        else if(basecmd == "setroot")
-        {
-            std::string roottdir = args[1];
-            rootdir = roottdir;
-        }
-    }
+    //Package* z = get_pack("/tmp/testpack");
+    //std::cout << "Name: " << z->name << std::endl;
+    //std::cout << "Version: " << z->version << std::endl;
+    //std::cout << "Author: " << z->author << std::endl;
+    //for(auto i = z->files.begin();i!=z->files.end();++i)
+    //{
+    //    std::string filename = (*i).filename;
+    //    std::cout << (*i).action << " " << filename << std::endl;
+    //}
+    if(!daemon) return 0;
+    struct sockaddr srvr_name, rcvr_name;
+#define BUF_SIZE 1024
+      char buf[BUF_SIZE];
+      int   sock;
+      unsigned int   namelen, bytes;
+
+      sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+      if (sock < 0)
+      {
+        perror("socket failed");
+        return EXIT_FAILURE;
+      }
+      srvr_name.sa_family = AF_UNIX;
+      strcpy(srvr_name.sa_data, sock_file.c_str());
+      if (bind(sock, &srvr_name, strlen(srvr_name.sa_data) +
+            sizeof(srvr_name.sa_family)) < 0)
+      {
+        perror("bind failed");
+        return EXIT_FAILURE;
+      }
+      while(1)
+      {
+            bytes = recvfrom(sock, buf, sizeof(buf),  0, &rcvr_name, &namelen);
+            if (bytes < 0)
+            {
+                perror("recvfrom failed");
+                return EXIT_FAILURE;
+            }
+            buf[bytes] = 0;
+            rcvr_name.sa_data[namelen] = 0;
+            printf("Client sent: %s\n", buf);
+            std::string cmd(buf,bytes);
+            std::vector<std::string> args = parsecmd(cmd);
+            std::string basecmd = args[0];
+            if(basecmd == "install")
+            {
+                std::string pckname = args[1];
+                Package* pck = find_pack(pckname);
+                if(pck == nullptr) pck = get_pack(packsdir+pckname);
+                if(pck == nullptr) {
+                    std::cerr << "package " << pckname << " not found";
+                    goto ifend;
+                }
+                std::cerr << pck->files.size();
+                pck->install();
+            }
+            else if(basecmd == "installu")
+            {
+                std::string pckname = args[1];
+                Package* pck = find_pack(pckname);
+                if(pck == nullptr) pck = get_pack(pckname);
+                if(pck == nullptr) {
+                    std::cerr << "package " << pckname << " not found";
+                    goto ifend;
+                }
+                pck->install();
+            }
+            else if(basecmd == "remove")
+            {
+                std::string pckname = args[1];
+                Package* pck = find_pack(pckname);
+                if(pck != nullptr) pck->remove_();
+                else std::cerr << "package " << pckname << " not found";
+            }
+            else if(basecmd == "load")
+            {
+                std::string pckdir = args[1];
+                get_pack(pckdir);
+            }
+            else if(basecmd == "unload")
+            {
+                std::string pckdir = args[1];
+                get_pack(pckdir);
+            }
+            else if(basecmd == "setroot")
+            {
+                std::string roottdir = args[1];
+                rootdir = roottdir;
+            }
+            else if(basecmd == "setpckdir")
+            {
+                std::string packsdirr = args[1];
+                packsdir = packsdirr;
+            }
+            else if(basecmd == "stop")
+            {
+                break;
+            }
+            ifend: ;
+            }
+        close(sock);
+        unlink(sock_file.c_str());
+        return 0;
 }
