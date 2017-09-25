@@ -1,6 +1,9 @@
+#ifndef MAIN_H
+#define MAIN_H
 #include <vector>
 #include <string>
 #include <list>
+#include "config.hpp"
 struct FileAction
 {
     std::string filename;
@@ -22,5 +25,8 @@ public:
     void install();
     void remove_();
 };
-extern Package* get_pack(std::string dir);
-extern Package* find_pack(std::string name);
+std::vector<std::string> parsecmd(std::string cmd);
+extern std::list<Package*> packs;
+extern std::string packsdir;
+extern std::string rootdir;
+#endif
