@@ -4,7 +4,6 @@
 #include <vector>
 #include <unistd.h>
 #include <fcntl.h>           /* Definition of AT_* constants */
-#include <unistd.h>
 #include "main.hpp"
 #include <string.h>
 #include <list>
@@ -110,7 +109,6 @@ int main(int argc, char** argv)
                     std::cerr << "package " << pckname << " not found";
                     goto ifend;
                 }
-                std::cerr << pck->files.size();
                 pck->install();
             }
             else if(basecmd == "installu")

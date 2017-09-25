@@ -1,4 +1,9 @@
 #include "main.hpp"
+#include "pkgutil.hpp"
+#include <unistd.h>
+#include <fcntl.h>           /* Definition of AT_* constants */
+#include <fstream>
+#include <iostream>
 void Package::install()
 {
     if(isStartInstall || isInstalled) return;
@@ -17,7 +22,8 @@ void Package::install()
     for(auto i = files.begin();i!=files.end();++i)
     {
         std::string filename = (*i).filename;
-        if((*i).action == 2) symlink((dir + (*i).filename).c_str(),(rootdir+filename).c_str());
+        std::string pckfile = (dir + filename);
+        if((*i).action == 2) symlink(pckfile.c_str(),(rootdir+filename).c_str());
         else if((*i).action == 1)
         {
             std::string buf;
