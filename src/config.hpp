@@ -10,8 +10,10 @@ struct __Configuration
     std::string packsdir = "/";
     bool isSetPackdir = false;
     std::string sockfile = "/run/sp";
+    std::string autoinstall = "";
     bool isSetSockfile = false;
     bool isDaemon = false;
+    bool isAutoinstall = false;
 };
 extern __Configuration cfg;
 #endif

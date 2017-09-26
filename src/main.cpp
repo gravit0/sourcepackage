@@ -31,7 +31,7 @@ std::vector<std::string> parsecmd(std::string cmd) {
     }
     return list;
 }
-static const char *optString = "dvc:s:r:";
+static const char *optString = "divc:s:r:";
 
 void config_parse(std::string filename) {
     std::fstream f(filename, std::ios_base::in);
@@ -54,7 +54,7 @@ void config_parse(std::string filename) {
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
-        std::cerr << cfg.rootdir << std::endl;
+        else if (frist == "autoinstall") cfg.autoinstall = last;
     }
 }
 
@@ -70,6 +70,10 @@ int main(int argc, char** argv) {
             case 's': {
                 cfg.sockfile = std::string(optarg);
                 cfg.isSetSockfile = true;
+                break;
+            }
+            case 'i': {
+                cfg.isAutoinstall = true;
                 break;
             }
             case 'r': {
@@ -100,6 +104,22 @@ int main(int argc, char** argv) {
     //    std::cout << (*i).action << " " << filename << std::endl;
     //}
     config_parse(config_file);
+    if(cfg.isAutoinstall)
+    {
+        auto list = parsecmd(cfg.autoinstall);
+        std::cout << list.size();
+        for(auto i = list.begin();i!=list.end();++i)
+        {
+            std::string pckname = (*i);
+            Package* pck = find_pack(pckname);
+            if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
+            if (pck == nullptr) {
+                std::cerr << "package " << pckname << " not found";
+                continue;
+            }
+            pck->install();
+        }
+    }
     if (!cfg.isDaemon) return 0;
     struct sockaddr srvr_name, rcvr_name;
     char buf[SOCK_BUF_SIZE];
