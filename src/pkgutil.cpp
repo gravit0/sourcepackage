@@ -60,6 +60,7 @@ Package* get_pack(std::string dir)
                 FileAction t;
                 if(category == "cp") t.action = 1;
                 else if(category == "ln") t.action = 2;
+                else if(category == "dir") t.action = 3;
                 t.filename = info;
                 files.push_back(t);
             }

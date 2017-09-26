@@ -27,6 +27,4 @@ public:
 };
 std::vector<std::string> parsecmd(std::string cmd);
 extern std::list<Package*> packs;
-extern std::string packsdir;
-extern std::string rootdir;
 #endif

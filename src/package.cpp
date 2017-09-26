@@ -2,6 +2,7 @@
 #include "pkgutil.hpp"
 #include <unistd.h>
 #include <fcntl.h>           /* Definition of AT_* constants */
+#include <sys/stat.h>
 #include <fstream>
 #include <iostream>
 void Package::install()
@@ -13,7 +14,12 @@ void Package::install()
         for(auto i = dependencies.begin();i!=dependencies.end();++i)
         {
             Package* dep = find_pack(*i);
-            if(dep == nullptr) dep = get_pack(*i);
+            if(dep == nullptr) dep = get_pack(cfg.packsdir + (*i));
+            if(dep == nullptr) 
+            {
+                std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
+                return;
+            }
             dep->install();
             dep->isDependence = true;
             dep->dependencie.push_back(this);
@@ -23,12 +29,15 @@ void Package::install()
     {
         std::string filename = (*i).filename;
         std::string pckfile = (dir + filename);
-        if((*i).action == 2) symlink(pckfile.c_str(),(rootdir+filename).c_str());
+        struct stat statbuff;
+        stat((dir+filename).c_str(), &statbuff);
+        if((*i).action == 2) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
+        else if((*i).action == 3) mkdir((cfg.rootdir+filename).c_str(),0755);
         else if((*i).action == 1)
         {
             std::string buf;
             std::fstream f(dir+filename,std::ios_base::in | std::ios_base::binary);
-            std::fstream f2(rootdir+filename,std::ios_base::out  | std::ios_base::binary);
+            std::fstream f2(cfg.rootdir+filename,std::ios_base::out  | std::ios_base::binary);
             if (f) {
                 // get length of file:
                 f.seekg (0, f.end);
@@ -53,6 +62,8 @@ void Package::install()
             }
             f.close();
             f2.close();
+            auto mode = statbuff.st_mode;
+            chmod((cfg.rootdir+filename).c_str(),mode);
         }
     }
     isInstalled = true;
@@ -61,7 +72,7 @@ void Package::remove_()
 {
     for(auto i = files.begin();i!=files.end();++i)
     {
-        remove((rootdir+(*i).filename).c_str());
+        remove((cfg.rootdir+(*i).filename).c_str());
     }
     isInstalled = false;
     if(!dependencies.empty())
