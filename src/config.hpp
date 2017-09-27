@@ -14,6 +14,12 @@ struct __Configuration
     bool isSetSockfile = false;
     bool isDaemon = false;
     bool isAutoinstall = false;
+    enum DAEMON_TYPE {
+        CFG_DAEMON_SIMPLE,
+        CFG_DAEMON_FORKING
+    };
+    DAEMON_TYPE daemon_type = CFG_DAEMON_SIMPLE;
+    
 };
 extern __Configuration cfg;
 #endif

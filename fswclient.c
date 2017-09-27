@@ -7,7 +7,7 @@
 #include <getopt.h>
 #define SOCK_NAME sock_path
 #define BUF_SIZE 256
-static const char *optString = "u:i:r:sl:f:p:";
+static const char *optString = "c:u:i:r:sl:f:p:";
 int main(int argc, char ** argv)
 {
       int opt = getopt(argc,argv,optString);
@@ -35,6 +35,14 @@ int main(int argc, char ** argv)
                 case 'l': {
                     char newstr[BUF_SIZE];
                     strcat(newstr,"load:");
+                    strcat(newstr,optarg);
+                    strcpy(buf, newstr);
+                    break;
+                    
+                }
+                case 'c': {
+                    char newstr[BUF_SIZE];
+                    strcat(newstr,"setconfig:");
                     strcat(newstr,optarg);
                     strcpy(buf, newstr);
                     break;

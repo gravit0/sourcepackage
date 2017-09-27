@@ -30,11 +30,21 @@ void Package::install()
         std::string filename = (*i).filename;
         std::string pckfile = (dir + filename);
         struct stat statbuff;
-        stat(pckfile.c_str(), &statbuff);
+        lstat(pckfile.c_str(), &statbuff);
         if((*i).action == 2) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
         else if((*i).action == 3) mkdir((cfg.rootdir+filename).c_str(),0755);
         else if((*i).action == 1)
         {
+            if(S_ISLNK(statbuff.st_mode))
+            {
+                char lbuff[1024];
+                int len;
+                if ((len = readlink((dir + filename).c_str(), lbuff, sizeof(lbuff)-1)) != -1) {
+                    lbuff[len] = '\0';
+                    symlink(lbuff,(cfg.rootdir+filename).c_str());
+                }
+                continue;
+            }
             std::string buf;
             std::fstream f(dir+filename,std::ios_base::in | std::ios_base::binary);
             std::fstream f2(cfg.rootdir+filename,std::ios_base::out  | std::ios_base::binary);

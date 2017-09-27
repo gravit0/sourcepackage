@@ -55,6 +55,11 @@ void config_parse(std::string filename) {
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
         else if (frist == "autoinstall") cfg.autoinstall = last;
+        else if (frist == "daemontype")
+        {
+            if(last == "simple") cfg.daemon_type = __Configuration::CFG_DAEMON_SIMPLE;
+            else if(last == "forking") cfg.daemon_type = __Configuration::CFG_DAEMON_FORKING;
+        }
     }
 }
 
@@ -121,6 +126,14 @@ int main(int argc, char** argv) {
         }
     }
     if (!cfg.isDaemon) return 0;
+    if(cfg.daemon_type == __Configuration::CFG_DAEMON_FORKING)
+    {
+        int pid = fork();
+        if(pid>0)
+        {
+            exit(0);
+        }
+    }
     struct sockaddr srvr_name, rcvr_name;
     char buf[SOCK_BUF_SIZE];
     int sock;
@@ -185,6 +198,9 @@ int main(int argc, char** argv) {
         } else if (basecmd == "setpckdir") {
             std::string packsdir = args[1];
             cfg.packsdir = packsdir;
+        } else if (basecmd == "setconfig") {
+            std::string cfgdir = args[1];
+            config_parse(cfgdir);
         } else if (basecmd == "stop") {
             break;
         }
