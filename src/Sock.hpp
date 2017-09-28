@@ -23,12 +23,14 @@ private:
     unsigned int bytes;
     int sock_,rsock;
     const char* filename_c;
+    bool loopEnable;
 public:
     Sock(std::string filepath);
     Sock(const Sock& orig);
     void loop(void (*lpfunc)(std::string,Sock*));
     int write(std::string str);
     void clientclose();
+    void stop();
     virtual ~Sock();
 private:
 

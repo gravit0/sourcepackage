@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <string.h>
 Sock::Sock(std::string filepath) {
+    loopEnable = false;
     sock_ = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_ < 0) {
         perror("socket failed");
@@ -34,7 +35,8 @@ Sock::Sock(std::string filepath) {
     listen(sock_, 1);
 }
 void Sock::loop(void (*lpfunc)(std::string,Sock*)){
-    while (1) {
+    loopEnable = true;
+    while (loopEnable) {
         rsock = accept(sock_,NULL,NULL);
         if(rsock < 0)
         {
@@ -65,6 +67,10 @@ int Sock::write(std::string str)
 void Sock::clientclose()
 {
     close(rsock);
+}
+void Sock::stop()
+{
+    loopEnable = false;
 }
 Sock::~Sock() {
     close(sock_);
