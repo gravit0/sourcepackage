@@ -14,53 +14,42 @@ int main(int argc, char ** argv)
     char sock_path[BUF_SIZE];
     int init_path = 0;
     char buf[BUF_SIZE];
+    buf[0] = 0;
     while( opt != -1 ) {
             switch( opt ) {
                 case 'i': {
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"install:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"install:");
+                    strcat(buf,optarg);
                     break;
                     
                 }
                 case 'u': {
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"installu:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"installu:");
+                    strcat(buf,optarg);
                     break;
                     
                 }
                 case 'l': {
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"load:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"load:");
+                    strcat(buf,optarg);
                     break;
                     
                 }
                 case 'c': {
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"setconfig:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"setconfig:");
+                    strcat(buf,optarg);
                     break;
                     
                 }
                 case 'r':{
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"remove:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"remove:");
+                    strcat(buf,optarg);
                     break;
                     
                 }
                 case 'p': {
-                    char newstr[BUF_SIZE];
-                    strcat(newstr,"setroot:");
-                    strcat(newstr,optarg);
-                    strcpy(buf, newstr);
+                    strcat(buf,"setroot:");
+                    strcat(buf,optarg);
                     break; 
                     
                 }
@@ -81,7 +70,7 @@ int main(int argc, char ** argv)
             opt = getopt( argc, argv, optString );
         }
   int   sock;
-  sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+  sock = socket(AF_UNIX, SOCK_STREAM, 0);
   struct sockaddr srvr_name;
   if (sock < 0) 
   {
@@ -91,7 +80,15 @@ int main(int argc, char ** argv)
   srvr_name.sa_family = AF_UNIX;
   if(init_path) strcpy(srvr_name.sa_data, SOCK_NAME);
   else strcpy(srvr_name.sa_data, "/run/sp");
-  sendto(sock, buf, strlen(buf), 0, &srvr_name,
-    strlen(srvr_name.sa_data) + sizeof(srvr_name.sa_family));
+  if(connect(sock, &srvr_name, sizeof(srvr_name)) < 0)
+  {
+     perror("connect failed");
+     exit(2);
+  }
+  send(sock, buf, strlen(buf), 0);
+  buf[0] = '\0';
+  recv(sock,buf,sizeof(buf),0);
+  if(buf[0] != '\0') printf("%s",buf);
+  close(sock);
 }
 

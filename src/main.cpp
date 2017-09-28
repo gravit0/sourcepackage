@@ -33,11 +33,10 @@ std::vector<std::string> parsecmd(std::string cmd) {
 }
 static const char *optString = "divc:s:r:";
 
-void config_parse(std::string filename) {
+int config_parse(std::string filename) {
     std::fstream f(filename, std::ios_base::in);
     if(!f) {
-        std::cerr << "Config " << filename <<" not found" << std::endl;
-        return;
+        return 1;
     }
     std::string info;
     std::string category;
@@ -61,6 +60,7 @@ void config_parse(std::string filename) {
             else if(last == "forking") cfg.daemon_type = __Configuration::CFG_DAEMON_FORKING;
         }
     }
+    return 0;
 }
 
 int main(int argc, char** argv) {
@@ -108,7 +108,8 @@ int main(int argc, char** argv) {
     //    std::string filename = (*i).filename;
     //    std::cout << (*i).action << " " << filename << std::endl;
     //}
-    config_parse(config_file);
+    int cfgres = config_parse(config_file);
+    if(cfgres == 1) std::cerr << "Config " << config_file <<" not found" << std::endl;
     if(cfg.isAutoinstall)
     {
         auto list = parsecmd(cfg.autoinstall);
@@ -134,12 +135,12 @@ int main(int argc, char** argv) {
             exit(0);
         }
     }
-    struct sockaddr srvr_name, rcvr_name;
+    struct sockaddr srvr_name;
     char buf[SOCK_BUF_SIZE];
     int sock;
-    unsigned int namelen, bytes;
+    unsigned int bytes;
 
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("socket failed");
         return EXIT_FAILURE;
@@ -151,14 +152,21 @@ int main(int argc, char** argv) {
         perror("bind failed");
         return EXIT_FAILURE;
     }
+    listen(sock, 1);
     while (1) {
-        bytes = recvfrom(sock, buf, sizeof (buf), 0, &rcvr_name, &namelen);
+        int rsock = accept(sock,NULL,NULL);
+        if(sock < 0)
+        {
+            perror("accept");
+            exit(3);
+        }
+        bytes = recv(rsock, buf, sizeof (buf),0);
         if (bytes < 0) {
-            perror("recvfrom failed");
-            return EXIT_FAILURE;
+            perror("recv failed");
+            close(rsock);
+            continue;
         }
         buf[bytes] = 0;
-        rcvr_name.sa_data[namelen] = 0;
         printf("Client sent: %s\n", buf);
         std::string cmd(buf, bytes);
         std::vector<std::string> args = parsecmd(cmd);
@@ -168,7 +176,9 @@ int main(int argc, char** argv) {
             Package* pck = find_pack(pckname);
             if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
             if (pck == nullptr) {
-                std::cerr << "package " << pckname << " not found";
+                std::string errstr = "package " + pckname + " not found\n";
+                const char* str = errstr.c_str();
+                send(rsock,str,errstr.size()+1,0);
                 goto ifend;
             }
             pck->install();
@@ -177,7 +187,9 @@ int main(int argc, char** argv) {
             Package* pck = find_pack(pckname);
             if (pck == nullptr) pck = get_pack(pckname);
             if (pck == nullptr) {
-                std::cerr << "package " << pckname << " not found";
+                std::string errstr = "package " + pckname + " not found\n";
+                const char* str = errstr.c_str();
+                send(rsock,str,errstr.size()+1,0);
                 goto ifend;
             }
             pck->install();
@@ -185,7 +197,11 @@ int main(int argc, char** argv) {
             std::string pckname = args[1];
             Package* pck = find_pack(pckname);
             if (pck != nullptr) pck->remove_();
-            else std::cerr << "package " << pckname << " not found";
+            else {
+                std::string errstr = "package " + pckname + " not found\n";
+                const char* str = errstr.c_str();
+                send(rsock,str,errstr.size()+1,0);
+            }
         } else if (basecmd == "load") {
             std::string pckdir = args[1];
             get_pack(pckdir);
@@ -200,11 +216,24 @@ int main(int argc, char** argv) {
             cfg.packsdir = packsdir;
         } else if (basecmd == "setconfig") {
             std::string cfgdir = args[1];
-            config_parse(cfgdir);
+            int result = config_parse(cfgdir);
+            if(result == 1)
+            {
+                std::string errstr = "Config " + cfgdir + " not found\n";
+                const char* str = errstr.c_str();
+                send(rsock,str,errstr.size()+1,0);
+            }
+            else
+            {
+                std::string errstr = "Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir;
+                const char* str = errstr.c_str();
+                send(rsock,str,errstr.size()+1,0);
+            }
         } else if (basecmd == "stop") {
             break;
         }
 ifend:
+                close(rsock);
         ;
     }
     close(sock);
