@@ -23,6 +23,7 @@ public:
     bool isDependence;
     bool isStartInstall;
     void install();
+    void fakeinstall();
     void remove_();
 };
 std::vector<std::string> parsecmd(std::string cmd);

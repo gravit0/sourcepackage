@@ -3,7 +3,7 @@
 #include <string>
 #define COPY_BUF_SIZE 8191 
 #define SOCK_BUF_SIZE 1024
-struct __Configuration
+struct Configuration
 {
     std::string rootdir = "/";
     bool isSetRootdir = false;
@@ -21,5 +21,5 @@ struct __Configuration
     DAEMON_TYPE daemon_type = CFG_DAEMON_SIMPLE;
     
 };
-extern __Configuration cfg;
+extern Configuration cfg;
 #endif

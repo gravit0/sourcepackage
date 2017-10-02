@@ -12,9 +12,10 @@
 #include <arpa/inet.h>
 #include "pkgutil.hpp"
 #include "Sock.hpp"
+#include "getopts.h"
 using namespace std;
 std::list<Package*> packs;
-__Configuration cfg;
+Configuration cfg;
 
 std::vector<std::string> parsecmd(std::string cmd) {
     int opos = 0;
@@ -32,7 +33,6 @@ std::vector<std::string> parsecmd(std::string cmd) {
     }
     return list;
 }
-static const char *optString = "divc:s:r:";
 
 int config_parse(std::string filename) {
     std::fstream f(filename, std::ios_base::in);
@@ -56,8 +56,8 @@ int config_parse(std::string filename) {
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
         else if (frist == "autoinstall") cfg.autoinstall = last;
         else if (frist == "daemontype") {
-            if (last == "simple") cfg.daemon_type = __Configuration::CFG_DAEMON_SIMPLE;
-            else if (last == "forking") cfg.daemon_type = __Configuration::CFG_DAEMON_FORKING;
+            if (last == "simple") cfg.daemon_type = Configuration::CFG_DAEMON_SIMPLE;
+            else if (last == "forking") cfg.daemon_type = Configuration::CFG_DAEMON_FORKING;
         }
     }
     return 0;
@@ -76,7 +76,17 @@ void cmd_exec(std::string cmd, Sock* sock) {
             goto ifend;
         }
         pck->install();
-    } else if (basecmd == "installu") {
+    } else if (basecmd == "fakeinstall") {
+        std::string pckname = args[1];
+        Package* pck = find_pack(pckname);
+        if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
+        if (pck == nullptr) {
+            std::string errstr = "package " + pckname + " not found\n";
+            sock->write(errstr);
+            goto ifend;
+        }
+        pck->fakeinstall();
+    }else if (basecmd == "installu") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(pckname);
@@ -106,6 +116,17 @@ void cmd_exec(std::string cmd, Sock* sock) {
     } else if (basecmd == "setpckdir") {
         std::string packsdir = args[1];
         cfg.packsdir = packsdir;
+    } else if (basecmd == "getpacks") {
+        std::string reply;
+        for(auto i=packs.begin();i!=packs.end();i++)
+        {
+            reply+= (*i)->name;
+            reply+= ":";
+            if((*i)->isInstalled) reply+= "i";
+            if((*i)->isDependence) reply+= "d";
+            reply+='\n';
+        }
+        sock->write(reply);
     } else if (basecmd == "setconfig") {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
@@ -113,7 +134,7 @@ void cmd_exec(std::string cmd, Sock* sock) {
             std::string errstr = "Config " + cfgdir + " not found\n";
             sock->write(errstr);
         } else {
-            std::string errstr = "Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir;
+            std::string errstr = "Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir + "\n";
             sock->write(errstr);
         }
     } else if (basecmd == "stop") {
@@ -123,7 +144,7 @@ void cmd_exec(std::string cmd, Sock* sock) {
 }
 
 int main(int argc, char** argv) {
-    int opt = getopt(argc, argv, optString);
+    int opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
     cfg.isDaemon = false;
     std::string config_file = "/etc/sp.cfg";
     while (opt != -1) {
@@ -158,8 +179,21 @@ int main(int argc, char** argv) {
                 /* сюда на самом деле попасть невозможно. */
                 break;
         }
-        opt = getopt(argc, argv, optString);
+        opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
     }
+    if(getopts::longopts.isHelp == 1)
+    {
+        std::cout << "Использование: " << std::string(argv[0]) << " [КЛЮЧ]" << std::endl;
+        std::cout << "Аргументы:" << std::endl;
+        std::cout << "-d,  --daemon    Запускает демон" << std::endl;
+        std::cout << "-c [config]      Использовать конфиг [config]" << std::endl;
+        std::cout << "-s [sockfile]    Использовать UNIX сокет [sockfile]" << std::endl;
+        std::cout << "-r [rootdir]     Изменяет root директорию" << std::endl;
+        std::cout << "-v               Версия программы" << std::endl;
+        std::cout << "--no-forking     Запрет daemontype=forking" << std::endl;
+        return 0;
+    }
+    if(getopts::longopts.isDaemon == 1) cfg.isDaemon = true;
     int cfgres = config_parse(config_file);
     if (cfgres == 1) {
         std::cerr << "Config " << config_file << " not found" << std::endl;
@@ -181,7 +215,7 @@ int main(int argc, char** argv) {
         }
     }
     if (!cfg.isDaemon) return 0;
-    if (cfg.daemon_type == __Configuration::CFG_DAEMON_FORKING) {
+    if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
         int pid = fork();
         if (pid > 0) {
             exit(0);

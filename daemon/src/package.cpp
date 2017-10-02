@@ -18,6 +18,7 @@ void Package::install()
             if(dep == nullptr) 
             {
                 std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
+                isStartInstall = false;
                 return;
             }
             dep->install();
@@ -77,14 +78,41 @@ void Package::install()
         }
     }
     isInstalled = true;
+    isStartInstall = false;
+}
+void Package::fakeinstall()
+{
+    if(isStartInstall || isInstalled) return;
+    else isStartInstall = true;
+    if(!dependencies.empty())
+    {
+        for(auto i = dependencies.begin();i!=dependencies.end();++i)
+        {
+            Package* dep = find_pack(*i);
+            if(dep == nullptr) dep = get_pack(cfg.packsdir + (*i));
+            if(dep == nullptr) 
+            {
+                std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
+                isStartInstall = false;
+                return;
+            }
+            dep->fakeinstall();
+            dep->isDependence = true;
+            dep->dependencie.push_back(this);
+        }
+    }
+    isInstalled = true;
+    isStartInstall = false;
 }
 void Package::remove_()
 {
+    if(!isInstalled) return;
     for(auto i = files.begin();i!=files.end();++i)
     {
         remove((cfg.rootdir+(*i).filename).c_str());
     }
     isInstalled = false;
+    isDependence = false;
     if(!dependencies.empty())
     {
         for(auto i = dependencies.begin();i!=dependencies.end();++i)
@@ -93,6 +121,16 @@ void Package::remove_()
             if(dep == nullptr) dep = get_pack(*i);
             if(dep->isDependence)
             {
+                for(auto j = dep->dependencie.begin();j!=dep->dependencie.end();++j)
+                {
+                    if((*j) == this) {
+                        dep->dependencie.erase(j);
+                        break;
+                    };
+                }
+                if(dep->dependencie.size() == 0) {
+                    dep->remove_();
+                }
                 //dep->dependencie.erase(std::find<std::list<Package*>::iterator,Package*>(dep->dependencie.begin(),dep->dependencie.end(),this));
             }
         }
