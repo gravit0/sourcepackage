@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <thread>
 #include "pkgutil.hpp"
 #include "Sock.hpp"
 #include "getopts.h"
@@ -62,10 +63,12 @@ int config_parse(std::string filename) {
     }
     return 0;
 }
-
+std::list<std::thread*> closed_thread;
+std::list<int> closed_socks;
 void cmd_exec(std::string cmd, Sock* sock) {
     std::vector<std::string> args = parsecmd(cmd);
     std::string basecmd = args[0];
+    bool isClosed = true;
     if (basecmd == "install") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
@@ -107,7 +110,29 @@ void cmd_exec(std::string cmd, Sock* sock) {
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         get_pack(pckdir);
-    } else if (basecmd == "unload") {
+    } else if (basecmd == "apistream") {
+        isClosed = false;
+        int tsock = sock->deattach();
+        std::thread* t = new std::thread([&sock,tsock](){
+            char buf[SOCK_BUF_SIZE];
+            unsigned int bytes;
+            bool isloop = true;
+            while(isloop)
+            {
+                bytes = sock->read_do(tsock,buf,sizeof(buf));
+                buf[bytes] = 0;
+                std::string command(buf,bytes);
+                std::vector<std::string> args = parsecmd(command);
+                if(args[0] == "stop")
+                {
+                    isloop=false;
+                }
+            }
+            close(tsock);
+        });
+        closed_socks.push_back(tsock);
+        closed_thread.push_back(t);
+    }else if (basecmd == "unload") {
         std::string pckdir = args[1];
         get_pack(pckdir);
     } else if (basecmd == "setroot") {
@@ -140,7 +165,8 @@ void cmd_exec(std::string cmd, Sock* sock) {
     } else if (basecmd == "stop") {
         sock->stop();
     }
-    ifend: ;
+    ifend:
+    if(isClosed) sock->clientclose();
 }
 
 int main(int argc, char** argv) {

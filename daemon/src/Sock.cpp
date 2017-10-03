@@ -43,7 +43,7 @@ void Sock::loop(void (*lpfunc)(std::string,Sock*)){
             perror("accept");
             exit(3);
         }
-        bytes = recv(rsock, buf, sizeof (buf),0);
+        bytes = recv(rsock, buf, sizeof(buf),0);
         if (bytes < 0) {
             perror("recv failed");
             close(rsock);
@@ -54,8 +54,14 @@ void Sock::loop(void (*lpfunc)(std::string,Sock*)){
         std::string cmd(buf, bytes);
         std::string errstr = "Config ";
         lpfunc(cmd,this);
-        close(rsock);
+        //close(rsock);
     }
+}
+int Sock::deattach()
+{
+    int ret = rsock;
+    rsock = 0;
+    return ret;
 }
 Sock::Sock(const Sock& orig) {
 }
@@ -63,6 +69,20 @@ int Sock::write(std::string str)
 {
     const char* cstr = str.c_str();
     return send(rsock,cstr,str.size()+1,0);
+}
+int Sock::write_do(int sock,std::string str)
+{
+    const char* cstr = str.c_str();
+    return send(sock,cstr,str.size()+1,0);
+}
+int Sock::read_do(int sock, char* buf,size_t buf_size)
+{
+    bytes = recv(sock, buf, buf_size,0);
+    if (bytes < 0) {
+       perror("recv failed");
+       close(sock);
+    }
+    return bytes;
 }
 void Sock::clientclose()
 {

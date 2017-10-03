@@ -28,7 +28,10 @@ public:
     Sock(std::string filepath);
     Sock(const Sock& orig);
     void loop(void (*lpfunc)(std::string,Sock*));
+    int deattach();
     int write(std::string str);
+    int write_do(int sock, std::string str);
+    int read_do(int sock, char* buf,size_t buf_size);
     void clientclose();
     void stop();
     virtual ~Sock();
