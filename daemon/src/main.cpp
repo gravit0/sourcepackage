@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <thread>
 #include "pkgutil.hpp"
+#include "basefunctions.h"
 #include "Sock.hpp"
 #include "getopts.h"
 using namespace std;
@@ -22,9 +23,11 @@ std::vector<std::string> parsecmd(std::string cmd) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
-        int pos = cmd.find(':', opos);
+        bool tr = false;
+        int pos = findNoSlash(cmd,':',opos,&tr);
         if (pos <= 0) {
             std::string value = cmd.substr(opos, pos - cmd.size());
+            if(tr) SlashReplace(&value,0);
             list.push_back(value);
             break;
         }
@@ -113,16 +116,19 @@ void cmd_exec(std::string cmd, Sock* sock) {
     } else if (basecmd == "apistream") {
         isClosed = false;
         int tsock = sock->deattach();
+        sock->write_do(tsock,"test");
         std::thread* t = new std::thread([&sock,tsock](){
             char buf[SOCK_BUF_SIZE];
             unsigned int bytes;
             bool isloop = true;
             while(isloop)
             {
+                std::cerr << "Apistream loop " << std::endl;
                 bytes = sock->read_do(tsock,buf,sizeof(buf));
                 buf[bytes] = 0;
                 std::string command(buf,bytes);
                 std::vector<std::string> args = parsecmd(command);
+                std::cerr << "Apistream command " << command << std::endl;
                 if(args[0] == "stop")
                 {
                     isloop=false;
