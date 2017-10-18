@@ -29,7 +29,7 @@ public:
     Client(int sock);
     int write(std::string str);
     int read();
-    ~Client();
+    virtual ~Client();
 };
 class Sock : public boost::noncopyable {
 private:
@@ -39,7 +39,6 @@ private:
     bool loopEnable;
 public:
     Sock(std::string filepath);
-    Sock(const Sock& orig);
     void loop(void (*lpfunc)(std::string,Client*));
     int deattach();
     void stop();
@@ -54,7 +53,8 @@ public:
     {
         SocketError,
         BindError,
-        AcceptError
+        AcceptError,
+        RecvError
     };
     Errors thiserr;
     socket_exception(Errors err);

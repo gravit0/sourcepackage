@@ -29,8 +29,6 @@ void Logger::logg(std::string str)
     else if(type == LOG_TYPE::LOG_STDOUT) std::cout << str;
     else if(type == LOG_TYPE::LOG_STDERR) std::cerr << str;
 }
-Logger::Logger(const Logger& orig) {
-}
 
 Logger::~Logger() {
 }

@@ -28,7 +28,6 @@ public:
     LOG_TYPE type;
     Logger(LOG_TYPE t,std::string file);
     Logger(LOG_TYPE t);
-    Logger(const Logger& orig);
     void logg(std::string str);
     virtual ~Logger();
 private:

@@ -45,6 +45,7 @@ const char* socket_exception::what() const noexcept
         case AcceptError: return "Accept Error";
         case SocketError: return "Socket Error";
         case BindError: return "Bind Error";
+        case RecvError: return "Recv Error";
         default: return "Unknown Error";
     }
 }
@@ -55,13 +56,14 @@ Client::Client(int sock)
 void Sock::loop(void (*lpfunc)(std::string,Client*)){
     loopEnable = true;
     while (loopEnable) {
-        Client* rsock = new Client(accept(sock_,NULL,NULL));
-        if(rsock < 0)
+        int native_sock =accept(sock_,NULL,NULL);
+        if(native_sock < 0)
         {
             throw socket_exception(socket_exception::AcceptError);
         }
+        Client* rsock = new Client(native_sock);
         rsock->read();
-        if (rsock->bytes < 0) {
+        if (rsock->bytes == 0) {
             delete rsock;
             continue;
         }
@@ -78,8 +80,6 @@ int Sock::deattach()
     //rsock = 0;
     return 0;
 }
-Sock::Sock(const Sock& orig) {
-}
 int Client::write(std::string str)
 {
     const char* cstr = str.c_str();
@@ -88,10 +88,6 @@ int Client::write(std::string str)
 int Client::read()
 {
     bytes = recv(sock, buf, sizeof(buf),0);
-    if (bytes < 0) {
-       perror("recv failed");
-       close(sock);
-    }
     return bytes;
 }
 Client::~Client()

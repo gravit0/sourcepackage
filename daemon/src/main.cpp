@@ -114,34 +114,28 @@ void cmd_exec(std::string cmd, Client* sock) {
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         get_pack(pckdir);
-    } /*else if (basecmd == "apistream") {
-        isClosed = false;
+    } else if (basecmd == "apistream") {
+        sock->isAutoClosable =  false;
         //int tsock = sock->deattach();
         //sock->write_do(tsock,"test");
-        auto lambda = [&sock,tsock](){
-            char buf[SOCK_BUF_SIZE];
-            unsigned int bytes;
+        auto lambda = [sock](){
             bool isloop = true;
-            auto lam = [&sock,tsock](std::string str)
-            {
-                //sock->write_do(tsock,str);
-            };
             while(isloop)
             {
-                std::cerr << "Apistream loop " << std::endl;
-                //bytes = sock->read_do(tsock,buf,sizeof(buf));
-                buf[bytes] = 0;
-                std::string command(buf,bytes);
-                std::vector<std::string> args = parsecmd(command);
-                std::cerr << "Apistream command " << command << std::endl;
-                cmd_exec(command,nullptr,lam);
+                if(sock->read() < 1) {
+                    std::cout << "Apistream closed.";
+                    isloop=false;
+                    break;
+                }
+                sock->buf[sock->bytes] = 0;
+                std::string command(sock->buf,sock->bytes);
+                cmd_exec(command,sock);
             }
-            close(tsock);
+            delete sock;
         };
         std::thread th(lambda);
         th.detach();
-        closed_socks.push_back(tsock);
-    }*/else if (basecmd == "unload") {
+    }else if (basecmd == "unload") {
         std::string pckdir = args[1];
         get_pack(pckdir);
     } else if (basecmd == "setroot") {
