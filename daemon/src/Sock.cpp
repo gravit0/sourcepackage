@@ -18,75 +18,85 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <exception>
 Sock::Sock(std::string filepath) {
     loopEnable = false;
     sock_ = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_ < 0) {
-        perror("socket failed");
-        //throw new std::exception("socket failed");
+        throw socket_exception(socket_exception::SocketError);
     }
     srvr_name.sa_family = AF_UNIX;
     filename_c = filepath.c_str();
     strcpy(srvr_name.sa_data, filename_c);
     if (bind(sock_, &srvr_name, strlen(srvr_name.sa_data) +
             sizeof (srvr_name.sa_family)) < 0) {
-        perror("bind failed");
+        throw socket_exception(socket_exception::BindError);
     }
     listen(sock_, 1);
 }
-void Sock::loop(void (*lpfunc)(std::string,Sock*)){
+socket_exception::socket_exception(Errors err)
+{
+    thiserr = err;
+}
+const char* socket_exception::what() const noexcept
+{
+    switch(thiserr)
+    {
+        case AcceptError: return "Accept Error";
+        case SocketError: return "Socket Error";
+        case BindError: return "Bind Error";
+        default: return "Unknown Error";
+    }
+}
+Client::Client(int sock)
+{
+    this->sock = sock;
+}
+void Sock::loop(void (*lpfunc)(std::string,Client*)){
     loopEnable = true;
     while (loopEnable) {
-        rsock = accept(sock_,NULL,NULL);
+        Client* rsock = new Client(accept(sock_,NULL,NULL));
         if(rsock < 0)
         {
-            perror("accept");
-            exit(3);
+            throw socket_exception(socket_exception::AcceptError);
         }
-        bytes = recv(rsock, buf, sizeof(buf),0);
-        if (bytes < 0) {
-            perror("recv failed");
-            close(rsock);
+        rsock->read();
+        if (rsock->bytes < 0) {
+            delete rsock;
             continue;
         }
-        buf[bytes] = 0;
-        printf("Client sent: %s\n", buf);
-        std::string cmd(buf, bytes);
-        std::string errstr = "Config ";
-        lpfunc(cmd,this);
-        //close(rsock);
+        rsock->buf[rsock->bytes] = 0;
+        printf("Client sent: %s\n", rsock->buf);
+        std::string cmd(rsock->buf, rsock->bytes);
+        lpfunc(cmd,rsock);
+        if(rsock->isAutoClosable) delete rsock;
     }
 }
 int Sock::deattach()
 {
-    int ret = rsock;
-    rsock = 0;
-    return ret;
+    //int ret = rsock;
+    //rsock = 0;
+    return 0;
 }
 Sock::Sock(const Sock& orig) {
 }
-int Sock::write(std::string str)
-{
-    const char* cstr = str.c_str();
-    return send(rsock,cstr,str.size()+1,0);
-}
-int Sock::write_do(int sock,std::string str)
+int Client::write(std::string str)
 {
     const char* cstr = str.c_str();
     return send(sock,cstr,str.size()+1,0);
 }
-int Sock::read_do(int sock, char* buf,size_t buf_size)
+int Client::read()
 {
-    bytes = recv(sock, buf, buf_size,0);
+    bytes = recv(sock, buf, sizeof(buf),0);
     if (bytes < 0) {
        perror("recv failed");
        close(sock);
     }
     return bytes;
 }
-void Sock::clientclose()
+Client::~Client()
 {
-    close(rsock);
+    close(sock);
 }
 void Sock::stop()
 {

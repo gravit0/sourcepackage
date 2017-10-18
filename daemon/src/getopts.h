@@ -27,6 +27,7 @@ namespace getopts
     {
         int isDaemon = 0;
         int isNoForking = 0;
+        int isNoWarning = 1;
         int isHelp = 0;
     };
     static longopts_st longopts;
@@ -34,6 +35,7 @@ namespace getopts
     const struct option long_options[] = {
         {"daemon",no_arg,&longopts.isDaemon,1},
         {"no-forking",no_arg,&longopts.isNoForking,1},
+        {"no-warning",no_arg,&longopts.isNoWarning,1},
         {"help",no_arg,&longopts.isHelp,1},
         //{"optc",no_argument,&flag_c,-121},
         {NULL,0,NULL,0}

@@ -6,19 +6,22 @@
 #include <fcntl.h>           /* Definition of AT_* constants */
 #include "main.hpp"
 #include <string.h>
+#include <sys/stat.h>
 #include <list>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/signal.h>
 #include <arpa/inet.h>
 #include <thread>
 #include "pkgutil.hpp"
 #include "basefunctions.h"
 #include "Sock.hpp"
 #include "getopts.h"
+#include <functional>
 using namespace std;
+std::mutex pack_mutex;
 std::list<Package*> packs;
 Configuration cfg;
-
 std::vector<std::string> parsecmd(std::string cmd) {
     int opos = 0;
     std::vector<std::string> list;
@@ -62,23 +65,24 @@ int config_parse(std::string filename) {
         else if (frist == "daemontype") {
             if (last == "simple") cfg.daemon_type = Configuration::CFG_DAEMON_SIMPLE;
             else if (last == "forking") cfg.daemon_type = Configuration::CFG_DAEMON_FORKING;
+        } else if (frist == "reinstall_socket") {
+            cfg.reinstall_socket = (last == "true") ? true : false;
         }
     }
     return 0;
 }
 std::list<std::thread*> closed_thread;
 std::list<int> closed_socks;
-void cmd_exec(std::string cmd, Sock* sock) {
+Sock* gsock;
+void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = parsecmd(cmd);
     std::string basecmd = args[0];
-    bool isClosed = true;
     if (basecmd == "install") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            std::string errstr = "package " + pckname + " not found\n";
-            sock->write(errstr);
+            sock->write("package " + pckname + " not found\n");
             goto ifend;
         }
         pck->install();
@@ -87,8 +91,7 @@ void cmd_exec(std::string cmd, Sock* sock) {
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            std::string errstr = "package " + pckname + " not found\n";
-            sock->write(errstr);
+            sock->write("package " + pckname + " not found\n");
             goto ifend;
         }
         pck->fakeinstall();
@@ -97,8 +100,7 @@ void cmd_exec(std::string cmd, Sock* sock) {
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(pckname);
         if (pck == nullptr) {
-            std::string errstr = "package " + pckname + " not found\n";
-            sock->write(errstr);
+            sock->write("package " + pckname + " not found\n");
             goto ifend;
         }
         pck->install();
@@ -107,38 +109,39 @@ void cmd_exec(std::string cmd, Sock* sock) {
         Package* pck = find_pack(pckname);
         if (pck != nullptr) pck->remove_();
         else {
-            std::string errstr = "package " + pckname + " not found\n";
-            sock->write(errstr);
+            sock->write("package " + pckname + " not found\n");
         }
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         get_pack(pckdir);
-    } else if (basecmd == "apistream") {
+    } /*else if (basecmd == "apistream") {
         isClosed = false;
-        int tsock = sock->deattach();
-        sock->write_do(tsock,"test");
-        std::thread* t = new std::thread([&sock,tsock](){
+        //int tsock = sock->deattach();
+        //sock->write_do(tsock,"test");
+        auto lambda = [&sock,tsock](){
             char buf[SOCK_BUF_SIZE];
             unsigned int bytes;
             bool isloop = true;
+            auto lam = [&sock,tsock](std::string str)
+            {
+                //sock->write_do(tsock,str);
+            };
             while(isloop)
             {
                 std::cerr << "Apistream loop " << std::endl;
-                bytes = sock->read_do(tsock,buf,sizeof(buf));
+                //bytes = sock->read_do(tsock,buf,sizeof(buf));
                 buf[bytes] = 0;
                 std::string command(buf,bytes);
                 std::vector<std::string> args = parsecmd(command);
                 std::cerr << "Apistream command " << command << std::endl;
-                if(args[0] == "stop")
-                {
-                    isloop=false;
-                }
+                cmd_exec(command,nullptr,lam);
             }
             close(tsock);
-        });
+        };
+        std::thread th(lambda);
+        th.detach();
         closed_socks.push_back(tsock);
-        closed_thread.push_back(t);
-    }else if (basecmd == "unload") {
+    }*/else if (basecmd == "unload") {
         std::string pckdir = args[1];
         get_pack(pckdir);
     } else if (basecmd == "setroot") {
@@ -149,12 +152,12 @@ void cmd_exec(std::string cmd, Sock* sock) {
         cfg.packsdir = packsdir;
     } else if (basecmd == "getpacks") {
         std::string reply;
-        for(auto i=packs.begin();i!=packs.end();i++)
+        for(auto& i : packs)
         {
-            reply+= (*i)->name;
+            reply+= i->name;
             reply+= ":";
-            if((*i)->isInstalled) reply+= "i";
-            if((*i)->isDependence) reply+= "d";
+            if(i->isInstalled) reply+= "i";
+            if(i->isDependence) reply+= "d";
             reply+='\n';
         }
         sock->write(reply);
@@ -162,20 +165,28 @@ void cmd_exec(std::string cmd, Sock* sock) {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
         if (result == 1) {
-            std::string errstr = "Config " + cfgdir + " not found\n";
-            sock->write(errstr);
+            sock->write("Config " + cfgdir + " not found\n");
         } else {
-            std::string errstr = "Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir + "\n";
-            sock->write(errstr);
+            sock->write("Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir + "\n");
         }
     } else if (basecmd == "stop") {
-        sock->stop();
+        gsock->stop();
     }
-    ifend:
-    if(isClosed) sock->clientclose();
+    ifend: ;
 }
-
+void signal_handler(int sig)
+{
+    if(gsock != nullptr) delete gsock;
+    if(sig == SIGTERM) exit(0);
+    exit(-sig);
+}
 int main(int argc, char** argv) {
+    gsock = nullptr;
+    signal(SIGTERM, signal_handler);
+    if(getpid() == 1)
+    {
+        std::cout << "I am NOT init!" << std::endl;
+    }
     int opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
     cfg.isDaemon = false;
     std::string config_file = "/etc/sp.cfg";
@@ -205,7 +216,7 @@ int main(int argc, char** argv) {
                 config_file = std::string(optarg);
                 break;
             case 'v':
-                std::cout << "Source Package v 0.0.2" << std::endl;
+                std::cout << "Source Package v 0.1" << std::endl;
                 break;
             default:
                 /* сюда на самом деле попасть невозможно. */
@@ -213,6 +224,7 @@ int main(int argc, char** argv) {
         }
         opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
     }
+    if(getopts::longopts.isNoWarning == 1) cfg.isAllowWarning = false;
     if(getopts::longopts.isHelp == 1)
     {
         std::cout << "Использование: " << std::string(argv[0]) << " [КЛЮЧ]" << std::endl;
@@ -223,14 +235,20 @@ int main(int argc, char** argv) {
         std::cout << "-r [rootdir]     Изменяет root директорию" << std::endl;
         std::cout << "-v               Версия программы" << std::endl;
         std::cout << "--no-forking     Запрет daemontype=forking" << std::endl;
+        std::cout << "--no-warning     Запрет вывода предупреждений" << std::endl;
         return 0;
     }
     if(getopts::longopts.isDaemon == 1) cfg.isDaemon = true;
     int cfgres = config_parse(config_file);
     if (cfgres == 1) {
-        std::cerr << "Config " << config_file << " not found" << std::endl;
+        std::cerr << "[CRITICAL] Config " << config_file << " not found" << std::endl;
         return -1;
         //throw std::string("Config not found.");
+    }
+    if(cfg.isAllowWarning) {
+        struct stat statbuff;
+        if(stat(cfg.rootdir.c_str(),&statbuff) != 0) std::cout << "[WARNING] rootdir " << cfg.rootdir <<" not found" << std::endl;
+        if(stat(cfg.packsdir.c_str(),&statbuff) != 0) std::cout << "[WARNING] packsdir " << cfg.packsdir <<" not found" << std::endl;
     }
     if (cfg.isAutoinstall) {
         auto list = parsecmd(cfg.autoinstall);
@@ -253,8 +271,19 @@ int main(int argc, char** argv) {
             exit(0);
         }
     }
-    Sock* sock = new Sock(cfg.sockfile);
-    sock->loop(&cmd_exec);
-    delete sock;
+    try {
+    gsock = new Sock(cfg.sockfile);
+    gsock->loop(&cmd_exec);
+    } catch(socket_exception e)
+    {
+        std::cout << "[CRITICAL] An exception was thrown out. Information: "<< e.what() << std::endl;
+        perror("[CRITICAL] Failed reason:");
+        exit(-1);
+    }
+    delete gsock;
+    for(auto i=packs.begin();i!=packs.end();++i)
+    {
+        delete(*i);
+    }
     return 0;
 }

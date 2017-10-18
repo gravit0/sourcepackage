@@ -16,28 +16,49 @@
 #include "config.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
-class Sock {
+#include <exception>
+#include <boost/noncopyable.hpp>
+class Client : public boost::noncopyable
+{
 private:
-    struct sockaddr srvr_name;
+    int sock;
+public:
+    bool isAutoClosable = true;
     char buf[SOCK_BUF_SIZE];
     unsigned int bytes;
-    int sock_,rsock;
+    Client(int sock);
+    int write(std::string str);
+    int read();
+    ~Client();
+};
+class Sock : public boost::noncopyable {
+private:
+    struct sockaddr srvr_name;
+    int sock_;
     const char* filename_c;
     bool loopEnable;
 public:
     Sock(std::string filepath);
     Sock(const Sock& orig);
-    void loop(void (*lpfunc)(std::string,Sock*));
+    void loop(void (*lpfunc)(std::string,Client*));
     int deattach();
-    int write(std::string str);
-    int write_do(int sock, std::string str);
-    int read_do(int sock, char* buf,size_t buf_size);
-    void clientclose();
     void stop();
     virtual ~Sock();
 private:
 
 };
-
+class socket_exception : public std::exception
+{
+public:
+    enum Errors
+    {
+        SocketError,
+        BindError,
+        AcceptError
+    };
+    Errors thiserr;
+    socket_exception(Errors err);
+    virtual const char* what() const noexcept;
+};
 #endif /* SOCK_HPP */
 
