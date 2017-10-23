@@ -26,6 +26,6 @@ public:
     void fakeinstall();
     void remove_();
 };
-std::vector<std::string> parsecmd(std::string cmd);
+std::vector<std::string> split(const std::string cmd,const char splitchar);
 extern std::list<Package*> packs;
 #endif

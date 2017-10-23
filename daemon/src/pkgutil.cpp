@@ -53,7 +53,7 @@ Package* get_pack(std::string dir)
                 std::string last = info.substr(pos + 1,info.size());
                 if(frist == "version") pack->version = last;
                 else if(frist == "creator") pack->author = last;
-                else if(frist == "dependencies") pack->dependencies = parsecmd(last);
+                else if(frist == "dependencies") pack->dependencies = split(last,':');
                 continue;
             }
             if(state == 2) {

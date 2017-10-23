@@ -22,12 +22,12 @@ using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
 Configuration cfg;
-std::vector<std::string> parsecmd(std::string cmd) {
+std::vector<std::string> split(const std::string cmd,const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
         bool tr = false;
-        int pos = findNoSlash(cmd,':',opos,&tr);
+        int pos = findNoSlash(cmd,splitchar,opos,&tr);
         if (pos <= 0) {
             std::string value = cmd.substr(opos, pos - cmd.size());
             if(tr) SlashReplace(&value,0);
@@ -75,51 +75,57 @@ std::list<std::thread*> closed_thread;
 std::list<int> closed_socks;
 Sock* gsock;
 void cmd_exec(std::string cmd, Client* sock) {
-    std::vector<std::string> args = parsecmd(cmd);
+    std::vector<std::string> args = split(cmd,':');
     std::string basecmd = args[0];
     if (basecmd == "install") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            sock->write("package " + pckname + " not found\n");
+            sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->install();
+        sock->write("ok:");
     } else if (basecmd == "fakeinstall") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            sock->write("package " + pckname + " not found\n");
+            sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->fakeinstall();
+        sock->write("ok:");
     }else if (basecmd == "installu") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
         if (pck == nullptr) pck = get_pack(pckname);
         if (pck == nullptr) {
-            sock->write("package " + pckname + " not found\n");
+            sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->install();
+        sock->write("ok:");
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
         Package* pck = find_pack(pckname);
-        if (pck != nullptr) pck->remove_();
+        if (pck != nullptr) {
+            pck->remove_();
+            sock->write("ok:");
+        }
         else {
-            sock->write("package " + pckname + " not found\n");
+            sock->write("error:pkgnotfound");
         }
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         get_pack(pckdir);
+        sock->write("ok:");
     } else if (basecmd == "apistream") {
         sock->isAutoClosable =  false;
-        //int tsock = sock->deattach();
-        //sock->write_do(tsock,"test");
         auto lambda = [sock](){
             bool isloop = true;
+            sock->write("ok:");
             while(isloop)
             {
                 if(sock->read() < 1) {
@@ -138,12 +144,15 @@ void cmd_exec(std::string cmd, Client* sock) {
     }else if (basecmd == "unload") {
         std::string pckdir = args[1];
         get_pack(pckdir);
+        sock->write("ok:");
     } else if (basecmd == "setroot") {
         std::string rootdir = args[1];
         cfg.rootdir = rootdir;
+        sock->write("ok:");
     } else if (basecmd == "setpckdir") {
         std::string packsdir = args[1];
         cfg.packsdir = packsdir;
+        sock->write("ok:");
     } else if (basecmd == "getpacks") {
         std::string reply;
         for(auto& i : packs)
@@ -159,12 +168,13 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
         if (result == 1) {
-            sock->write("Config " + cfgdir + " not found\n");
+            sock->write("error:cfgnotfound");
         } else {
-            sock->write("Config " + cfgdir + " found. pkgdir = " + cfg.packsdir + " rootdir = " + cfg.rootdir + "\n");
+            sock->write("ok:");
         }
     } else if (basecmd == "stop") {
         gsock->stop();
+        sock->write("ok:");
     }
     ifend: ;
 }
@@ -245,7 +255,7 @@ int main(int argc, char** argv) {
         if(stat(cfg.packsdir.c_str(),&statbuff) != 0) std::cout << "[WARNING] packsdir " << cfg.packsdir <<" not found" << std::endl;
     }
     if (cfg.isAutoinstall) {
-        auto list = parsecmd(cfg.autoinstall);
+        auto list = split(cfg.autoinstall,':');
         std::cout << list.size();
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
