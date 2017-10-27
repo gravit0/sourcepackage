@@ -16,7 +16,7 @@ struct Configuration {
     bool isAutoinstall = false;
     bool reinstall_socket = true;
     bool isAllowWarning = false;
-
+    
     enum DAEMON_TYPE {
         CFG_DAEMON_SIMPLE,
         CFG_DAEMON_FORKING

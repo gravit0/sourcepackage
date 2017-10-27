@@ -37,13 +37,26 @@ public:
     bool isInstalled;
     bool isDependence;
     bool isStartInstall;
-    void install();
-    void fakeinstall();
+    static const unsigned int flag_fakeInstall = 1 << 0;
+    static const unsigned int flag_nodep = 1 << 0;
+    void install(unsigned int flags=0);
     void remove_();
     static Package* find(std::string name);
     static Package* unload(std::string name);
     static Package* get(std::string dir);
     static std::mutex mutex;
+};
+class package_exception : public std::exception {
+public:
+
+    enum Errors {
+        DependencieNotFound,
+        ErrorParsePackage
+        
+    };
+    Errors thiserr;
+    package_exception(Errors err);
+    virtual const char* what() const noexcept;
 };
 std::vector<std::string> split(const std::string cmd, const char splitchar);
 extern std::list<Package*> packs;
