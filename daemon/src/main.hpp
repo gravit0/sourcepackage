@@ -8,13 +8,24 @@
 struct FileAction
 {
     std::string filename;
-    int action;
+    int mode;
+    int group;
+    int owner;
+    enum ActionList
+    {
+        DIR,
+        FILE,
+        LINK
+    };
+    ActionList action;
 };
 class Package
 {
 public:
     std::string name;
-    std::string version;
+    int version_major;
+    int version_minor;
+    int version_build;
     std::string author;
     std::string dir;
     std::string daemonfile;

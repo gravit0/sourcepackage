@@ -7,7 +7,7 @@
 std::mutex Package::mutex;
 void Package::install()
 {
-    Package::mutex.lock();
+    
     if(isStartInstall || isInstalled) return;
     else isStartInstall = true;
     if(!dependencies.empty())
@@ -33,9 +33,9 @@ void Package::install()
         std::string pckfile = (dir + filename);
         struct stat statbuff;
         lstat(pckfile.c_str(), &statbuff);
-        if((*i).action == 2) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
-        else if((*i).action == 3) mkdir((cfg.rootdir+filename).c_str(),0755);
-        else if((*i).action == 1)
+        if((*i).action == FileAction::LINK) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
+        else if((*i).action == FileAction::DIR) mkdir((cfg.rootdir+filename).c_str(),0755);
+        else if((*i).action == FileAction::FILE)
         {
             if(S_ISLNK(statbuff.st_mode))
             {
@@ -80,11 +80,11 @@ void Package::install()
     }
     isInstalled = true;
     isStartInstall = false;
-    Package::mutex.unlock();
+    
 }
 void Package::fakeinstall()
 {
-    Package::mutex.lock();
+    
     if(isStartInstall || isInstalled) return;
     else isStartInstall = true;
     if(!dependencies.empty())
@@ -106,11 +106,11 @@ void Package::fakeinstall()
     }
     isInstalled = true;
     isStartInstall = false;
-    Package::mutex.unlock();
+    
 }
 void Package::remove_()
 {
-    Package::mutex.lock();
+    
     if(!isInstalled) return;
     for(auto i = files.begin();i!=files.end();++i)
     {
@@ -140,5 +140,5 @@ void Package::remove_()
             }
         }
     }
-    Package::mutex.unlock();
+    
 }

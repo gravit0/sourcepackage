@@ -1,81 +1,67 @@
 #include "main.hpp"
 #include <fstream>
-Package* Package::find(std::string name)
-{
-    for(auto i = packs.begin();i!=packs.end();++i)
-    {
-        if((*i)->name == name) return (*i);
+#include "util.hpp"
+#include <boost/property_tree/ini_parser.hpp>
+
+Package* Package::find(std::string name) {
+    for (auto i = packs.begin(); i != packs.end(); ++i) {
+        if ((*i)->name == name) return (*i);
     }
     return nullptr;
 }
-Package* Package::unload(std::string name)
-{
-    Package::mutex.lock();
-    for(auto i = packs.begin();i!=packs.end();++i)
-    {
-        if((*i)->name == name) {
+
+Package* Package::unload(std::string name) {
+    
+    for (auto i = packs.begin(); i != packs.end(); ++i) {
+        if ((*i)->name == name) {
             packs.erase(i);
             delete (*i);
         }
     }
-    Package::mutex.unlock();
+    
     return nullptr;
 }
-Package* Package::get(std::string dir)
-{
-    Package::mutex.lock();
-    std::fstream f;
-    f.open(dir + "/config.cfg",std::ios_base::in);
-    if(!f.fail())
+
+Package* Package::get(std::string dir) {
+    
+    RecursionArray arr;
+    try {
+        boost::property_tree::ini_parser::read_ini(dir + "/package.ini",arr);
+    } catch(boost::property_tree::ini_parser_error err)
     {
-        Package* pack = new Package();
-        pack->isInstalled = false;
-        pack->isDependence = false;
-        pack->isStartInstall = false;
-        std::string info;
-        std::list<FileAction> files;
-        std::string category;
-        std::string name;
-        int state = 0;
-        while(std::getline(f,info))
-        {
-            if(info.size()<=1) continue;
-            if(info[0] == '[')
-            {
-                if(state == 0) {
-                    name=info.substr(1,info.size() - 2);
-                    state = 1; }
-                else { category=info.substr(1,info.size() - 2);  state = 2;}
-                continue;
-            }
-            if(state == 1) {
-                int pos = info.find('=');
-                if(pos < 0) continue;
-                std::string frist = info.substr(0,pos);
-                std::string last = info.substr(pos + 1,info.size());
-                if(frist == "version") pack->version = last;
-                else if(frist == "creator") pack->author = last;
-                else if(frist == "daemonfile") pack->daemonfile = last;
-                else if(frist == "logfile") pack->logfile = last;
-                else if(frist == "creator") pack->author = last;
-                else if(frist == "dependencies") pack->dependencies = split(last,':');
-                continue;
-            }
-            if(state == 2) {
-                FileAction t;
-                if(category == "cp") t.action = 1;
-                else if(category == "ln") t.action = 2;
-                else if(category == "dir") t.action = 3;
-                t.filename = info;
-                files.push_back(t);
-            }
-        }
-        pack->name = name;
-        pack->files = files;
-        pack->dir = dir;
-        packs.push_back(pack);
-        return pack;
+        return nullptr;
     }
-    Package::mutex.unlock();
-    return nullptr;
+    Package* pack = new Package();
+    pack->isInstalled = false;
+    pack->isDependence = false;
+    pack->isStartInstall = false;
+    std::string info;
+    std::list<FileAction> files;
+    std::string category;
+    std::string name;
+    const RecursionArray main = arr.get_child("package");
+    pack->name = main.get<std::string>("name","");
+    pack->version_major = main.get<int>("version",1);
+    pack->version_minor = main.get<int>("version_min",0);
+    pack->version_build = main.get<int>("build",0);
+    const RecursionArray filesarr = arr.get_child("data");
+    for(auto &i : filesarr)
+    {
+        const std::string value= i.second.get<std::string>("");
+        FileAction t;
+        std::vector<std::string> v = split(value,':');
+        if(v[0] == "l") t.action = FileAction::LINK;
+        else if(v[0] == "f") t.action = FileAction::FILE;
+        else if(v[0] == "d") t.action = FileAction::DIR;
+        else t.action = FileAction::FILE;
+        t.filename = i.first;
+        files.push_back(t);
+    }
+    std::string dep = main.get<std::string>("dependencies","");
+    if(!dep.empty()) pack->dependencies = split(dep,':');
+    pack->files = files;
+    pack->dir = dir;
+    packs.push_back(pack);
+    
+    return pack;
 }
