@@ -18,6 +18,8 @@
 #include "Sock.hpp"
 #include "getopts.h"
 #include <functional>
+#include "util.hpp"
+#include <boost/property_tree/ini_parser.hpp>
 using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
@@ -40,8 +42,10 @@ std::vector<std::string> split(const std::string cmd,const char splitchar) {
     }
     return list;
 }
-
+//#define DEF_CFG_PARSER
+#ifdef DEF_CFG_PARSER
 int config_parse(std::string filename) {
+    
     std::fstream f(filename, std::ios_base::in);
     if (!f) {
         return 1;
@@ -71,61 +75,108 @@ int config_parse(std::string filename) {
     }
     return 0;
 }
+#else
+int config_parse(std::string filename) {
+    
+    std::fstream f(filename, std::ios_base::in);
+    if (!f) {
+        return 1;
+    }
+    RecursionArray acfg;
+    boost::property_tree::ini_parser::read_ini(filename,acfg);
+    RecursionArray maincfg = acfg.get_child("main");
+    for(auto& i : maincfg)
+    {
+        std::string frist = i.first;
+        std::string last = i.second.get<std::string>("");
+        if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
+        else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
+        else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
+        else if (frist == "autoinstall") cfg.autoinstall = last;
+        else if (frist == "daemontype") {
+            if (last == "simple") cfg.daemon_type = Configuration::CFG_DAEMON_SIMPLE;
+            else if (last == "forking") cfg.daemon_type = Configuration::CFG_DAEMON_FORKING;
+        } else if (frist == "reinstall_socket") {
+            cfg.reinstall_socket = (last == "true") ? true : false;
+        }
+    }
+    return 0;
+}
+#endif
 std::list<std::thread*> closed_thread;
 std::list<int> closed_socks;
 Sock* gsock;
 void cmd_exec(std::string cmd, Client* sock) {
-    std::vector<std::string> args = split(cmd,':');
+    std::vector<std::string> args = split(cmd,'\t');
     std::string basecmd = args[0];
     if (basecmd == "install") {
         std::string pckname = args[1];
-        Package* pck = find_pack(pckname);
-        if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
+        Package* pck = Package::find(pckname);
+        if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
         if (pck == nullptr) {
             sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->install();
-        sock->write("ok:");
+        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
     } else if (basecmd == "fakeinstall") {
         std::string pckname = args[1];
-        Package* pck = find_pack(pckname);
-        if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
+        Package* pck = Package::find(pckname);
+        if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
         if (pck == nullptr) {
             sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->fakeinstall();
-        sock->write("ok:");
+        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
     }else if (basecmd == "installu") {
         std::string pckname = args[1];
-        Package* pck = find_pack(pckname);
-        if (pck == nullptr) pck = get_pack(pckname);
+        Package* pck = Package::find(pckname);
+        if (pck == nullptr) pck = Package::get(pckname);
         if (pck == nullptr) {
             sock->write("error:pkgnotfound");
             goto ifend;
         }
         pck->install();
-        sock->write("ok:");
+        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
+    } else if (basecmd == "findfile") {
+        std::string filename = args[1];
+        bool isBreak;
+        Package* resultpck = nullptr;
+        for(auto &i : packs)
+        {
+            isBreak = false;
+            for(auto&j : i->files)
+            {
+                if(j.filename == args[2]) {
+                    isBreak=true;
+                    break;
+                }
+            }
+            if(isBreak) {
+                resultpck = i;
+                break;}
+        }
+        sock->write("0\t" + resultpck->name);
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
-        Package* pck = find_pack(pckname);
+        Package* pck = Package::find(pckname);
         if (pck != nullptr) {
             pck->remove_();
-            sock->write("ok:");
+            sock->write("0\t");
         }
         else {
-            sock->write("error:pkgnotfound");
+            sock->write("error\tpkgnotfound");
         }
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
-        get_pack(pckdir);
-        sock->write("ok:");
+        Package::get(pckdir);
+        sock->write("0\t");
     } else if (basecmd == "apistream") {
         sock->isAutoClosable =  false;
         auto lambda = [sock](){
             bool isloop = true;
-            sock->write("ok:");
+            sock->write("0\t");
             while(isloop)
             {
                 if(sock->read() < 1) {
@@ -143,16 +194,16 @@ void cmd_exec(std::string cmd, Client* sock) {
         th.detach();
     }else if (basecmd == "unload") {
         std::string pckdir = args[1];
-        get_pack(pckdir);
-        sock->write("ok:");
+        Package::get(pckdir);
+        sock->write("0\t");
     } else if (basecmd == "setroot") {
         std::string rootdir = args[1];
         cfg.rootdir = rootdir;
-        sock->write("ok:");
+        sock->write("0\t");
     } else if (basecmd == "setpckdir") {
         std::string packsdir = args[1];
         cfg.packsdir = packsdir;
-        sock->write("ok:");
+        sock->write("0\t");
     } else if (basecmd == "getpacks") {
         std::string reply;
         for(auto& i : packs)
@@ -161,20 +212,20 @@ void cmd_exec(std::string cmd, Client* sock) {
             reply+= ":";
             if(i->isInstalled) reply+= "i";
             if(i->isDependence) reply+= "d";
-            reply+='\n';
+            reply+='\t';
         }
         sock->write(reply);
     } else if (basecmd == "setconfig") {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
         if (result == 1) {
-            sock->write("error:cfgnotfound");
+            sock->write("error\tcfgnotfound");
         } else {
-            sock->write("ok:");
+            sock->write("0\t");
         }
     } else if (basecmd == "stop") {
         gsock->stop();
-        sock->write("ok:");
+        sock->write("0\t");
     }
     ifend: ;
 }
@@ -220,7 +271,7 @@ int main(int argc, char** argv) {
                 config_file = std::string(optarg);
                 break;
             case 'v':
-                std::cout << "Source Package v 0.1" << std::endl;
+                std::cout << "Source Package v 0.2" << std::endl;
                 break;
             default:
                 /* сюда на самом деле попасть невозможно. */
@@ -259,8 +310,8 @@ int main(int argc, char** argv) {
         std::cout << list.size();
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
-            Package* pck = find_pack(pckname);
-            if (pck == nullptr) pck = get_pack(cfg.packsdir + pckname);
+            Package* pck = Package::find(pckname);
+            if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr) {
                 std::cerr << "package " << pckname << " not found";
                 continue;

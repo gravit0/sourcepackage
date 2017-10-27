@@ -1,7 +1,7 @@
 #include "main.hpp"
 #include "pkgutil.hpp"
 #include <fstream>
-Package* find_pack(std::string name)
+Package* Package::find(std::string name)
 {
     for(auto i = packs.begin();i!=packs.end();++i)
     {
@@ -9,8 +9,9 @@ Package* find_pack(std::string name)
     }
     return nullptr;
 }
-Package* unload_pack(std::string name)
+Package* Package::unload(std::string name)
 {
+    Package::mutex.lock();
     for(auto i = packs.begin();i!=packs.end();++i)
     {
         if((*i)->name == name) {
@@ -18,10 +19,12 @@ Package* unload_pack(std::string name)
             delete (*i);
         }
     }
+    Package::mutex.unlock();
     return nullptr;
 }
-Package* get_pack(std::string dir)
+Package* Package::get(std::string dir)
 {
+    Package::mutex.lock();
     std::fstream f;
     f.open(dir + "/config.cfg",std::ios_base::in);
     if(!f.fail())
@@ -53,6 +56,9 @@ Package* get_pack(std::string dir)
                 std::string last = info.substr(pos + 1,info.size());
                 if(frist == "version") pack->version = last;
                 else if(frist == "creator") pack->author = last;
+                else if(frist == "daemonfile") pack->daemonfile = last;
+                else if(frist == "logfile") pack->logfile = last;
+                else if(frist == "creator") pack->author = last;
                 else if(frist == "dependencies") pack->dependencies = split(last,':');
                 continue;
             }
@@ -71,5 +77,6 @@ Package* get_pack(std::string dir)
         packs.push_back(pack);
         return pack;
     }
+    Package::mutex.unlock();
     return nullptr;
 }

@@ -67,6 +67,11 @@ int main(int argc, char ** argv)
                     break;
                     
                 }
+                case 'u': {
+                    args.flagU = true;
+                    break;
+                    
+                }
                 case 'l': {
                     args.flagLoad = true;
                     args.pkgname = optarg;
@@ -74,7 +79,7 @@ int main(int argc, char ** argv)
                     
                 }
                 case 'c': {
-                    strcat(buf,"setconfig:");
+                    strcat(buf,"setconfig\t");
                     strcat(buf,optarg);
                     break;
                     
@@ -114,25 +119,29 @@ int main(int argc, char ** argv)
     }
     if(args.flagInstall)
     {
-        if(args.flagU) strcat(buf,"installu:");
-        else strcat(buf,"install:");
+        if(args.flagU) strcat(buf,"installu\t");
+        else strcat(buf,"install\t");
         strcat(buf,args.pkgname.c_str());
     }
-    if(args.flagRemove)
+    else if(args.flagRemove)
     {
-        strcat(buf,"remove:");
+        strcat(buf,"remove\t");
         strcat(buf,args.pkgname.c_str());
     }
-    if(args.flagLoad)
+    else if(args.flagLoad)
     {
-        if(args.flagU) strcat(buf,"unload:");
-        else strcat(buf,"load:");
+        if(args.flagU) strcat(buf,"unload\t");
+        else strcat(buf,"load\t");
         strcat(buf,args.pkgname.c_str());
     }
-    if(args.flagGetpack)
+    else if(args.flagGetpack)
     {
-        strcat(buf,"getpacks:");
+        strcat(buf,"getpacks\t");
         strcat(buf,args.pkgname.c_str());
+    }
+    else if(args.flagStop)
+    {
+        strcat(buf,"stop\t");
     }
   int   sock;
   sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -155,8 +164,11 @@ int main(int argc, char ** argv)
   recv(sock,buf,sizeof(buf),0);
   if(buf[0] != '\0'){
       std::string cmd(buf);
-      std::vector<std::string> args = split(cmd,':');
-      std::cout << cmd;
+      std::vector<std::string> args = split(cmd,'\t');
+      if(args[0] == "0") goto sockclose;
+      else std::cout << cmd;
   }
+  sockclose:
   close(sock);
+  return 0;
 }

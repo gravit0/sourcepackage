@@ -5,16 +5,18 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <iostream>
+std::mutex Package::mutex;
 void Package::install()
 {
+    Package::mutex.lock();
     if(isStartInstall || isInstalled) return;
     else isStartInstall = true;
     if(!dependencies.empty())
     {
         for(auto i = dependencies.begin();i!=dependencies.end();++i)
         {
-            Package* dep = find_pack(*i);
-            if(dep == nullptr) dep = get_pack(cfg.packsdir + (*i));
+            Package* dep = Package::find(*i);
+            if(dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
             if(dep == nullptr) 
             {
                 std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
@@ -79,17 +81,19 @@ void Package::install()
     }
     isInstalled = true;
     isStartInstall = false;
+    Package::mutex.unlock();
 }
 void Package::fakeinstall()
 {
+    Package::mutex.lock();
     if(isStartInstall || isInstalled) return;
     else isStartInstall = true;
     if(!dependencies.empty())
     {
         for(auto i = dependencies.begin();i!=dependencies.end();++i)
         {
-            Package* dep = find_pack(*i);
-            if(dep == nullptr) dep = get_pack(cfg.packsdir + (*i));
+            Package* dep = Package::find(*i);
+            if(dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
             if(dep == nullptr) 
             {
                 std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
@@ -103,9 +107,11 @@ void Package::fakeinstall()
     }
     isInstalled = true;
     isStartInstall = false;
+    Package::mutex.unlock();
 }
 void Package::remove_()
 {
+    Package::mutex.lock();
     if(!isInstalled) return;
     for(auto i = files.begin();i!=files.end();++i)
     {
@@ -117,8 +123,8 @@ void Package::remove_()
     {
         for(auto i = dependencies.begin();i!=dependencies.end();++i)
         {
-            Package* dep = find_pack(*i);
-            if(dep == nullptr) dep = get_pack(*i);
+            Package* dep = Package::find(*i);
+            if(dep == nullptr) dep = Package::get(*i);
             if(dep->isDependence)
             {
                 for(auto j = dep->dependencie.begin();j!=dep->dependencie.end();++j)
@@ -135,4 +141,5 @@ void Package::remove_()
             }
         }
     }
+    Package::mutex.unlock();
 }
