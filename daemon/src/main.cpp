@@ -90,7 +90,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         bool isFakeInstall = false;
         bool isNoDep = false;
         bool isFullPath = false;
-        int flags = 0;
+        unsigned int flags = 0;
         if(args.size() >= 2)
         {
             for( auto &i : args[2])
@@ -292,7 +292,7 @@ int main(int argc, char** argv) {
             Package* pck = Package::find(pckname);
             if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr) {
-                std::cerr << "package " << pckname << " not found";
+                std::cerr << "package " << pckname << " not found" << std::endl;
                 continue;
             }
             pck->install();
