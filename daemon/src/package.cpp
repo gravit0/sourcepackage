@@ -1,5 +1,4 @@
 #include "main.hpp"
-#include "pkgutil.hpp"
 #include <unistd.h>
 #include <fcntl.h>           /* Definition of AT_* constants */
 #include <sys/stat.h>

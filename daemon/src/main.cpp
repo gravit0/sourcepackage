@@ -13,7 +13,6 @@
 #include <sys/signal.h>
 #include <arpa/inet.h>
 #include <thread>
-#include "pkgutil.hpp"
 #include "basefunctions.h"
 #include "Sock.hpp"
 #include "getopts.h"
