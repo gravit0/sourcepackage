@@ -11,24 +11,23 @@ Package* Package::find(std::string name) {
 }
 
 Package* Package::unload(std::string name) {
-    
+
     for (auto i = packs.begin(); i != packs.end(); ++i) {
         if ((*i)->name == name) {
             packs.erase(i);
             delete (*i);
         }
     }
-    
+
     return nullptr;
 }
 
 Package* Package::get(std::string dir) {
-    
+
     RecursionArray arr;
     try {
-        boost::property_tree::ini_parser::read_ini(dir + "/package.ini",arr);
-    } catch(boost::property_tree::ini_parser_error err)
-    {
+        boost::property_tree::ini_parser::read_ini(dir + "/package.ini", arr);
+    } catch (boost::property_tree::ini_parser_error err) {
         return nullptr;
     }
     Package* pack = new Package();
@@ -40,39 +39,38 @@ Package* Package::get(std::string dir) {
     std::string category;
     std::string name;
     const RecursionArray main = arr.get_child("package");
-    pack->name = main.get<std::string>("name","");
-    pack->author = main.get<std::string>("author","");
-    pack->license = main.get<std::string>("license","");
-    pack->version_major = main.get<int>("version",1);
-    pack->version_minor = main.get<int>("version",0);
-    pack->version_build = main.get<int>("build",0);
+    pack->name = main.get<std::string>("name", "");
+    pack->author = main.get<std::string>("author", "");
+    pack->license = main.get<std::string>("license", "");
+    pack->version_major = main.get<int>("version", 1);
+    pack->version_minor = main.get<int>("version", 0);
+    pack->version_build = main.get<int>("build", 0);
     const RecursionArray filesarr = arr.get_child("data");
-    for(auto &i : filesarr)
-    {
-        const std::string value= i.second.get<std::string>("");
+    for (auto &i : filesarr) {
+        const std::string value = i.second.get<std::string>("");
         FileAction t;
-        std::vector<std::string> v = split(value,':');
-        if(v[0] == "l") t.action = FileAction::LINK;
-        else if(v[0] == "f") t.action = FileAction::FILE;
-        else if(v[0] == "d") t.action = FileAction::DIR;
+        std::vector<std::string> v = split(value, ':');
+        if (v[0] == "l") t.action = FileAction::LINK;
+        else if (v[0] == "f") t.action = FileAction::FILE;
+        else if (v[0] == "d") t.action = FileAction::DIR;
         else t.action = FileAction::FILE;
-        if(v.size() >=1) {
+        if (v.size() >= 1) {
             t.mode = std::stoi(v[1]);
         } else t.mode = -1;
-        if(v.size() >=2) {
+        if (v.size() >= 2) {
             t.group = std::stoi(v[2]);
         } else t.group = -1;
-        if(v.size() >=3) {
+        if (v.size() >= 3) {
             t.owner = std::stoi(v[3]);
         } else t.owner = -1;
         t.filename = i.first;
         files.push_back(t);
     }
-    std::string dep = main.get<std::string>("dependencies","");
-    if(!dep.empty()) pack->dependencies = split(dep,':');
+    std::string dep = main.get<std::string>("dependencies", "");
+    if (!dep.empty()) pack->dependencies = split(dep, ':');
     pack->files = files;
     pack->dir = dir;
     packs.push_back(pack);
-    
+
     return pack;
 }

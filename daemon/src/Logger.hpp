@@ -15,10 +15,12 @@
 #define LOGGER_HPP
 #include <string>
 #include <fstream>
+
 class Logger {
 private:
     std::fstream of;
 public:
+
     enum LOG_TYPE {
         LOG_KMSG,
         LOG_STDOUT,
@@ -26,7 +28,7 @@ public:
         LOG_FILE
     };
     LOG_TYPE type;
-    Logger(LOG_TYPE t,std::string file);
+    Logger(LOG_TYPE t, std::string file);
     Logger(LOG_TYPE t);
     void logg(std::string str);
     virtual ~Logger();

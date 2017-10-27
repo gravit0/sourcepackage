@@ -5,22 +5,22 @@
 #include <mutex>
 #include <list>
 #include "config.hpp"
-struct FileAction
-{
+
+struct FileAction {
     std::string filename;
     int mode;
     int group;
     int owner;
-    enum ActionList
-    {
+
+    enum ActionList {
         DIR,
         FILE,
         LINK
     };
     ActionList action;
 };
-class Package
-{
+
+class Package {
 public:
     std::string name;
     int version_major;
@@ -45,6 +45,6 @@ public:
     static Package* get(std::string dir);
     static std::mutex mutex;
 };
-std::vector<std::string> split(const std::string cmd,const char splitchar);
+std::vector<std::string> split(const std::string cmd, const char splitchar);
 extern std::list<Package*> packs;
 #endif

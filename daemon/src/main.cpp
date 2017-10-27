@@ -23,15 +23,16 @@ using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
 Configuration cfg;
-std::vector<std::string> split(const std::string cmd,const char splitchar) {
+
+std::vector<std::string> split(const std::string cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
         bool tr = false;
-        int pos = findNoSlash(cmd,splitchar,opos,&tr);
+        int pos = findNoSlash(cmd, splitchar, opos, &tr);
         if (pos <= 0) {
             std::string value = cmd.substr(opos, pos - cmd.size());
-            if(tr) SlashReplace(&value,0);
+            if (tr) SlashReplace(&value, 0);
             list.push_back(value);
             break;
         }
@@ -43,8 +44,9 @@ std::vector<std::string> split(const std::string cmd,const char splitchar) {
 }
 //#define DEF_CFG_PARSER
 #ifdef DEF_CFG_PARSER
+
 int config_parse(std::string filename) {
-    
+
     std::fstream f(filename, std::ios_base::in);
     if (!f) {
         return 1;
@@ -75,17 +77,17 @@ int config_parse(std::string filename) {
     return 0;
 }
 #else
+
 int config_parse(std::string filename) {
-    
+
     std::fstream f(filename, std::ios_base::in);
     if (!f) {
         return 1;
     }
     RecursionArray acfg;
-    boost::property_tree::ini_parser::read_ini(filename,acfg);
+    boost::property_tree::ini_parser::read_ini(filename, acfg);
     RecursionArray maincfg = acfg.get_child("main");
-    for(auto& i : maincfg)
-    {
+    for (auto& i : maincfg) {
         std::string frist = i.first;
         std::string last = i.second.get<std::string>("");
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
@@ -105,8 +107,9 @@ int config_parse(std::string filename) {
 std::list<std::thread*> closed_thread;
 std::list<int> closed_socks;
 Sock* gsock;
+
 void cmd_exec(std::string cmd, Client* sock) {
-    std::vector<std::string> args = split(cmd,' ');
+    std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
     if (basecmd == "install") {
         std::string pckname = args[1];
@@ -128,7 +131,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         }
         pck->fakeinstall();
         sock->write("0 " + pck->daemonfile + " " + pck->logfile);
-    }else if (basecmd == "installu") {
+    } else if (basecmd == "installu") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) pck = Package::get(pckname);
@@ -142,19 +145,18 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string filename = args[1];
         bool isBreak;
         Package* resultpck = nullptr;
-        for(auto &i : packs)
-        {
+        for (auto &i : packs) {
             isBreak = false;
-            for(auto&j : i->files)
-            {
-                if(j.filename == args[2]) {
-                    isBreak=true;
+            for (auto&j : i->files) {
+                if (j.filename == args[2]) {
+                    isBreak = true;
                     break;
                 }
             }
-            if(isBreak) {
+            if (isBreak) {
                 resultpck = i;
-                break;}
+                break;
+            }
         }
         sock->write("0 " + resultpck->name);
     } else if (basecmd == "remove") {
@@ -163,8 +165,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         if (pck != nullptr) {
             pck->remove_();
             sock->write("0 ");
-        }
-        else {
+        } else {
             sock->write("error pkgnotfound");
         }
     } else if (basecmd == "load") {
@@ -172,26 +173,25 @@ void cmd_exec(std::string cmd, Client* sock) {
         Package::get(pckdir);
         sock->write("0 ");
     } else if (basecmd == "apistream") {
-        sock->isAutoClosable =  false;
-        auto lambda = [sock](){
+        sock->isAutoClosable = false;
+        auto lambda = [sock]() {
             bool isloop = true;
             sock->write("0 ");
-            while(isloop)
-            {
-                if(sock->read() < 1) {
+            while (isloop) {
+                if (sock->read() < 1) {
                     std::cout << "Apistream closed.";
-                    isloop=false;
+                    isloop = false;
                     break;
                 }
                 sock->buf[sock->bytes] = 0;
-                std::string command(sock->buf,sock->bytes);
-                cmd_exec(command,sock);
+                std::string command(sock->buf, sock->bytes);
+                cmd_exec(command, sock);
             }
             delete sock;
         };
         std::thread th(lambda);
         th.detach();
-    }else if (basecmd == "unload") {
+    } else if (basecmd == "unload") {
         std::string pckdir = args[1];
         Package::get(pckdir);
         sock->write("0 ");
@@ -205,13 +205,12 @@ void cmd_exec(std::string cmd, Client* sock) {
         sock->write("0 ");
     } else if (basecmd == "getpacks") {
         std::string reply;
-        for(auto& i : packs)
-        {
-            reply+= i->name;
-            reply+= ":";
-            if(i->isInstalled) reply+= "i";
-            if(i->isDependence) reply+= "d";
-            reply+=' ';
+        for (auto& i : packs) {
+            reply += i->name;
+            reply += ":";
+            if (i->isInstalled) reply += "i";
+            if (i->isDependence) reply += "d";
+            reply += ' ';
         }
         sock->write(reply);
     } else if (basecmd == "setconfig") {
@@ -226,22 +225,23 @@ void cmd_exec(std::string cmd, Client* sock) {
         gsock->stop();
         sock->write("0 ");
     }
-    ifend: ;
+ifend:
+    ;
 }
-void signal_handler(int sig)
-{
-    if(gsock != nullptr) delete gsock;
-    if(sig == SIGTERM) exit(0);
+
+void signal_handler(int sig) {
+    if (gsock != nullptr) delete gsock;
+    if (sig == SIGTERM) exit(0);
     exit(-sig);
 }
+
 int main(int argc, char** argv) {
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
-    if(getpid() == 1)
-    {
+    if (getpid() == 1) {
         std::cout << "I am NOT init!" << std::endl;
     }
-    int opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
+    int opt = getopt_long(argc, argv, getopts::optString, getopts::long_options, NULL);
     cfg.isDaemon = false;
     std::string config_file = "/etc/sp.cfg";
     while (opt != -1) {
@@ -276,11 +276,10 @@ int main(int argc, char** argv) {
                 /* сюда на самом деле попасть невозможно. */
                 break;
         }
-        opt = getopt_long(argc, argv, getopts::optString,getopts::long_options,NULL);
+        opt = getopt_long(argc, argv, getopts::optString, getopts::long_options, NULL);
     }
-    if(getopts::longopts.isNoWarning == 1) cfg.isAllowWarning = false;
-    if(getopts::longopts.isHelp == 1)
-    {
+    if (getopts::longopts.isNoWarning == 1) cfg.isAllowWarning = false;
+    if (getopts::longopts.isHelp == 1) {
         std::cout << "Использование: " << std::string(argv[0]) << " [КЛЮЧ]" << std::endl;
         std::cout << "Аргументы:" << std::endl;
         std::cout << "-d,  --daemon    Запускает демон" << std::endl;
@@ -292,20 +291,20 @@ int main(int argc, char** argv) {
         std::cout << "--no-warning     Запрет вывода предупреждений" << std::endl;
         return 0;
     }
-    if(getopts::longopts.isDaemon == 1) cfg.isDaemon = true;
+    if (getopts::longopts.isDaemon == 1) cfg.isDaemon = true;
     int cfgres = config_parse(config_file);
     if (cfgres == 1) {
         std::cerr << "[CRITICAL] Config " << config_file << " not found" << std::endl;
         return -1;
         //throw std::string("Config not found.");
     }
-    if(cfg.isAllowWarning) {
+    if (cfg.isAllowWarning) {
         struct stat statbuff;
-        if(stat(cfg.rootdir.c_str(),&statbuff) != 0) std::cout << "[WARNING] rootdir " << cfg.rootdir <<" not found" << std::endl;
-        if(stat(cfg.packsdir.c_str(),&statbuff) != 0) std::cout << "[WARNING] packsdir " << cfg.packsdir <<" not found" << std::endl;
+        if (stat(cfg.rootdir.c_str(), &statbuff) != 0) std::cout << "[WARNING] rootdir " << cfg.rootdir << " not found" << std::endl;
+        if (stat(cfg.packsdir.c_str(), &statbuff) != 0) std::cout << "[WARNING] packsdir " << cfg.packsdir << " not found" << std::endl;
     }
     if (cfg.isAutoinstall) {
-        auto list = split(cfg.autoinstall,':');
+        auto list = split(cfg.autoinstall, ':');
         std::cout << list.size();
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
@@ -326,17 +325,15 @@ int main(int argc, char** argv) {
         }
     }
     try {
-    gsock = new Sock(cfg.sockfile);
-    gsock->loop(&cmd_exec);
-    } catch(socket_exception e)
-    {
-        std::cout << "[CRITICAL] An exception was thrown out. Information: "<< e.what() << std::endl;
+        gsock = new Sock(cfg.sockfile);
+        gsock->loop(&cmd_exec);
+    } catch (socket_exception e) {
+        std::cout << "[CRITICAL] An exception was thrown out. Information: " << e.what() << std::endl;
         perror("[CRITICAL] Failed reason:");
         exit(-1);
     }
     delete gsock;
-    for(auto i=packs.begin();i!=packs.end();++i)
-    {
+    for (auto i = packs.begin(); i != packs.end(); ++i) {
         delete(*i);
     }
     return 0;

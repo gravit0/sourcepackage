@@ -18,8 +18,8 @@
 #include <sys/socket.h>
 #include <exception>
 #include <boost/noncopyable.hpp>
-class Client : public boost::noncopyable
-{
+
+class Client : public boost::noncopyable {
 private:
     int sock;
 public:
@@ -31,6 +31,7 @@ public:
     int read();
     virtual ~Client();
 };
+
 class Sock : public boost::noncopyable {
 private:
     struct sockaddr srvr_name;
@@ -39,18 +40,18 @@ private:
     bool loopEnable;
 public:
     Sock(std::string filepath);
-    void loop(void (*lpfunc)(std::string,Client*));
+    void loop(void (*lpfunc)(std::string, Client*));
     int deattach();
     void stop();
     virtual ~Sock();
 private:
 
 };
-class socket_exception : public std::exception
-{
+
+class socket_exception : public std::exception {
 public:
-    enum Errors
-    {
+
+    enum Errors {
         SocketError,
         BindError,
         AcceptError,

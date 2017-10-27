@@ -14,17 +14,16 @@
 #ifndef GETOPTS_H
 #define GETOPTS_H
 #include "config.hpp"
-namespace getopts
-{
-    #include <getopt.h>
-    enum types : int
-    {
+namespace getopts {
+#include <getopt.h>
+
+    enum types : int {
         no_arg = 0,
         required_arg = 1,
         optional_arg = 2
     };
-    struct longopts_st
-    {
+
+    struct longopts_st {
         int isDaemon = 0;
         int isNoForking = 0;
         int isNoWarning = 1;
@@ -33,12 +32,12 @@ namespace getopts
     static longopts_st longopts;
     static const char *optString = "divc:s:r:";
     const struct option long_options[] = {
-        {"daemon",no_arg,&longopts.isDaemon,1},
-        {"no-forking",no_arg,&longopts.isNoForking,1},
-        {"no-warning",no_arg,&longopts.isNoWarning,1},
-        {"help",no_arg,&longopts.isHelp,1},
+        {"daemon", no_arg, &longopts.isDaemon, 1},
+        {"no-forking", no_arg, &longopts.isNoForking, 1},
+        {"no-warning", no_arg, &longopts.isNoWarning, 1},
+        {"help", no_arg, &longopts.isHelp, 1},
         //{"optc",no_argument,&flag_c,-121},
-        {NULL,0,NULL,0}
+        {NULL, 0, NULL, 0}
     };
 };
 

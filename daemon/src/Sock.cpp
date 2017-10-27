@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <exception>
+
 Sock::Sock(std::string filepath) {
     loopEnable = false;
     sock_ = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -34,14 +35,13 @@ Sock::Sock(std::string filepath) {
     }
     listen(sock_, 1);
 }
-socket_exception::socket_exception(Errors err)
-{
+
+socket_exception::socket_exception(Errors err) {
     thiserr = err;
 }
-const char* socket_exception::what() const noexcept
-{
-    switch(thiserr)
-    {
+
+const char* socket_exception::what() const noexcept {
+    switch (thiserr) {
         case AcceptError: return "Accept Error";
         case SocketError: return "Socket Error";
         case BindError: return "Bind Error";
@@ -49,16 +49,16 @@ const char* socket_exception::what() const noexcept
         default: return "Unknown Error";
     }
 }
-Client::Client(int sock)
-{
+
+Client::Client(int sock) {
     this->sock = sock;
 }
-void Sock::loop(void (*lpfunc)(std::string,Client*)){
+
+void Sock::loop(void (*lpfunc)(std::string, Client*)) {
     loopEnable = true;
     while (loopEnable) {
-        int native_sock =accept(sock_,NULL,NULL);
-        if(native_sock < 0)
-        {
+        int native_sock = accept(sock_, NULL, NULL);
+        if (native_sock < 0) {
             throw socket_exception(socket_exception::AcceptError);
         }
         Client* rsock = new Client(native_sock);
@@ -70,34 +70,35 @@ void Sock::loop(void (*lpfunc)(std::string,Client*)){
         rsock->buf[rsock->bytes] = 0;
         printf("Client sent: %s\n", rsock->buf);
         std::string cmd(rsock->buf, rsock->bytes);
-        lpfunc(cmd,rsock);
-        if(rsock->isAutoClosable) delete rsock;
+        lpfunc(cmd, rsock);
+        if (rsock->isAutoClosable) delete rsock;
     }
 }
-int Sock::deattach()
-{
+
+int Sock::deattach() {
     //int ret = rsock;
     //rsock = 0;
     return 0;
 }
-int Client::write(std::string str)
-{
+
+int Client::write(std::string str) {
     const char* cstr = str.c_str();
-    return send(sock,cstr,str.size()+1,0);
+    return send(sock, cstr, str.size() + 1, 0);
 }
-int Client::read()
-{
-    bytes = recv(sock, buf, sizeof(buf),0);
+
+int Client::read() {
+    bytes = recv(sock, buf, sizeof (buf), 0);
     return bytes;
 }
-Client::~Client()
-{
+
+Client::~Client() {
     close(sock);
 }
-void Sock::stop()
-{
+
+void Sock::stop() {
     loopEnable = false;
 }
+
 Sock::~Sock() {
     close(sock_);
     unlink(filename_c);

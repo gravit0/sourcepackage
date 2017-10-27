@@ -20,7 +20,7 @@ long long int byteToLong(std::string buffer);
 int byteToInt(std::string buffer);
 std::string IntToByte(int integer);
 void SlashReplace(std::string* str, const unsigned int frist_pos);
-int findNoSlash(const std::string& str,const char ch, const unsigned int frist_pos,bool* isReplace);
+int findNoSlash(const std::string& str, const char ch, const unsigned int frist_pos, bool* isReplace);
 
 #endif /* BASEFUNCTIONS_H */
 

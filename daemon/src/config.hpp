@@ -3,8 +3,8 @@
 #include <string>
 #define COPY_BUF_SIZE 8191 
 #define SOCK_BUF_SIZE 1024
-struct Configuration
-{
+
+struct Configuration {
     std::string rootdir = "/";
     bool isSetRootdir = false;
     std::string packsdir = "/";
@@ -16,12 +16,13 @@ struct Configuration
     bool isAutoinstall = false;
     bool reinstall_socket = true;
     bool isAllowWarning = false;
+
     enum DAEMON_TYPE {
         CFG_DAEMON_SIMPLE,
         CFG_DAEMON_FORKING
     };
     DAEMON_TYPE daemon_type = CFG_DAEMON_SIMPLE;
-    
+
 };
 extern Configuration cfg;
 #endif
