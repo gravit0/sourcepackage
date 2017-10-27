@@ -41,8 +41,10 @@ Package* Package::get(std::string dir) {
     std::string name;
     const RecursionArray main = arr.get_child("package");
     pack->name = main.get<std::string>("name","");
+    pack->author = main.get<std::string>("author","");
+    pack->license = main.get<std::string>("license","");
     pack->version_major = main.get<int>("version",1);
-    pack->version_minor = main.get<int>("version_min",0);
+    pack->version_minor = main.get<int>("version",0);
     pack->version_build = main.get<int>("build",0);
     const RecursionArray filesarr = arr.get_child("data");
     for(auto &i : filesarr)
@@ -54,6 +56,15 @@ Package* Package::get(std::string dir) {
         else if(v[0] == "f") t.action = FileAction::FILE;
         else if(v[0] == "d") t.action = FileAction::DIR;
         else t.action = FileAction::FILE;
+        if(v.size() >=1) {
+            t.mode = std::stoi(v[1]);
+        } else t.mode = -1;
+        if(v.size() >=2) {
+            t.group = std::stoi(v[2]);
+        } else t.group = -1;
+        if(v.size() >=3) {
+            t.owner = std::stoi(v[3]);
+        } else t.owner = -1;
         t.filename = i.first;
         files.push_back(t);
     }

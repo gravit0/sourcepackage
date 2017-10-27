@@ -27,15 +27,24 @@ void Package::install()
             dep->dependencie.push_back(this);
         }
     }
-    for(auto i = files.begin();i!=files.end();++i)
+    for(auto& i : files)
     {
-        std::string filename = (*i).filename;
+        std::string filename = i.filename;
         std::string pckfile = (dir + filename);
         struct stat statbuff;
         lstat(pckfile.c_str(), &statbuff);
-        if((*i).action == FileAction::LINK) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
-        else if((*i).action == FileAction::DIR) mkdir((cfg.rootdir+filename).c_str(),0755);
-        else if((*i).action == FileAction::FILE)
+        auto filemode = statbuff.st_mode;
+        if(i.mode >= 0) filemode =i.mode;
+        if(i.action == FileAction::LINK) symlink(pckfile.c_str(),(cfg.rootdir+filename).c_str());
+        else if(i.action == FileAction::DIR) {
+            mkdir((cfg.rootdir+filename).c_str(),filemode);
+            auto uid = statbuff.st_uid;
+            auto gid = statbuff.st_gid;
+            if(i.owner >= 0) uid = i.owner;
+            if(i.group >= 0) gid = i.group;
+            if(i.owner >=0 || i.group > 0) chown((cfg.rootdir+filename).c_str(),uid,gid);
+        }
+        else if(i.action == FileAction::FILE)
         {
             if(S_ISLNK(statbuff.st_mode))
             {
@@ -74,8 +83,12 @@ void Package::install()
             }
             f.close();
             f2.close();
-            auto mode = statbuff.st_mode;
-            chmod((cfg.rootdir+filename).c_str(),mode);
+            chmod((cfg.rootdir+filename).c_str(),filemode);
+            auto uid = statbuff.st_uid;
+            auto gid = statbuff.st_gid;
+            if(i.owner >= 0) uid = i.owner;
+            if(i.group >= 0) gid = i.group;
+            if(i.owner >=0 || i.group > 0) chown((cfg.rootdir+filename).c_str(),uid,gid);
         }
     }
     isInstalled = true;

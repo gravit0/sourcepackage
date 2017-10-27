@@ -106,38 +106,38 @@ std::list<std::thread*> closed_thread;
 std::list<int> closed_socks;
 Sock* gsock;
 void cmd_exec(std::string cmd, Client* sock) {
-    std::vector<std::string> args = split(cmd,'\t');
+    std::vector<std::string> args = split(cmd,' ');
     std::string basecmd = args[0];
     if (basecmd == "install") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            sock->write("error:pkgnotfound");
+            sock->write("error pkgnotfound");
             goto ifend;
         }
         pck->install();
-        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
+        sock->write("0 " + pck->daemonfile + " " + pck->logfile);
     } else if (basecmd == "fakeinstall") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
         if (pck == nullptr) {
-            sock->write("error:pkgnotfound");
+            sock->write("error pkgnotfound");
             goto ifend;
         }
         pck->fakeinstall();
-        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
+        sock->write("0 " + pck->daemonfile + " " + pck->logfile);
     }else if (basecmd == "installu") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) pck = Package::get(pckname);
         if (pck == nullptr) {
-            sock->write("error:pkgnotfound");
+            sock->write("error pkgnotfound");
             goto ifend;
         }
         pck->install();
-        sock->write("0\t" + pck->daemonfile + "\t" + pck->logfile);
+        sock->write("0 " + pck->daemonfile + " " + pck->logfile);
     } else if (basecmd == "findfile") {
         std::string filename = args[1];
         bool isBreak;
@@ -156,26 +156,26 @@ void cmd_exec(std::string cmd, Client* sock) {
                 resultpck = i;
                 break;}
         }
-        sock->write("0\t" + resultpck->name);
+        sock->write("0 " + resultpck->name);
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck != nullptr) {
             pck->remove_();
-            sock->write("0\t");
+            sock->write("0 ");
         }
         else {
-            sock->write("error\tpkgnotfound");
+            sock->write("error pkgnotfound");
         }
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         Package::get(pckdir);
-        sock->write("0\t");
+        sock->write("0 ");
     } else if (basecmd == "apistream") {
         sock->isAutoClosable =  false;
         auto lambda = [sock](){
             bool isloop = true;
-            sock->write("0\t");
+            sock->write("0 ");
             while(isloop)
             {
                 if(sock->read() < 1) {
@@ -194,15 +194,15 @@ void cmd_exec(std::string cmd, Client* sock) {
     }else if (basecmd == "unload") {
         std::string pckdir = args[1];
         Package::get(pckdir);
-        sock->write("0\t");
+        sock->write("0 ");
     } else if (basecmd == "setroot") {
         std::string rootdir = args[1];
         cfg.rootdir = rootdir;
-        sock->write("0\t");
+        sock->write("0 ");
     } else if (basecmd == "setpckdir") {
         std::string packsdir = args[1];
         cfg.packsdir = packsdir;
-        sock->write("0\t");
+        sock->write("0 ");
     } else if (basecmd == "getpacks") {
         std::string reply;
         for(auto& i : packs)
@@ -211,20 +211,20 @@ void cmd_exec(std::string cmd, Client* sock) {
             reply+= ":";
             if(i->isInstalled) reply+= "i";
             if(i->isDependence) reply+= "d";
-            reply+='\t';
+            reply+=' ';
         }
         sock->write(reply);
     } else if (basecmd == "setconfig") {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
         if (result == 1) {
-            sock->write("error\tcfgnotfound");
+            sock->write("error cfgnotfound");
         } else {
-            sock->write("0\t");
+            sock->write("0 ");
         }
     } else if (basecmd == "stop") {
         gsock->stop();
-        sock->write("0\t");
+        sock->write("0 ");
     }
     ifend: ;
 }

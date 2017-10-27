@@ -29,6 +29,7 @@ public:
     std::string author;
     std::string dir;
     std::string daemonfile;
+    std::string license;
     std::string logfile;
     std::vector<std::string> dependencies;
     std::list<FileAction> files;

@@ -79,7 +79,7 @@ int main(int argc, char ** argv)
                     
                 }
                 case 'c': {
-                    strcat(buf,"setconfig\t");
+                    strcat(buf,"setconfig  ");
                     strcat(buf,optarg);
                     break;
                     
@@ -119,29 +119,29 @@ int main(int argc, char ** argv)
     }
     if(args.flagInstall)
     {
-        if(args.flagU) strcat(buf,"installu\t");
-        else strcat(buf,"install\t");
+        if(args.flagU) strcat(buf,"installu  ");
+        else strcat(buf,"install  ");
         strcat(buf,args.pkgname.c_str());
     }
     else if(args.flagRemove)
     {
-        strcat(buf,"remove\t");
+        strcat(buf,"remove  ");
         strcat(buf,args.pkgname.c_str());
     }
     else if(args.flagLoad)
     {
-        if(args.flagU) strcat(buf,"unload\t");
-        else strcat(buf,"load\t");
+        if(args.flagU) strcat(buf,"unload  ");
+        else strcat(buf,"load  ");
         strcat(buf,args.pkgname.c_str());
     }
     else if(args.flagGetpack)
     {
-        strcat(buf,"getpacks\t");
+        strcat(buf,"getpacks  ");
         strcat(buf,args.pkgname.c_str());
     }
     else if(args.flagStop)
     {
-        strcat(buf,"stop\t");
+        strcat(buf,"stop  ");
     }
   int   sock;
   sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -164,7 +164,7 @@ int main(int argc, char ** argv)
   recv(sock,buf,sizeof(buf),0);
   if(buf[0] != '\0'){
       std::string cmd(buf);
-      std::vector<std::string> args = split(cmd,'\t');
+      std::vector<std::string> args = split(cmd,' ');
       if(args[0] == "0") goto sockclose;
       else std::cout << cmd;
   }
