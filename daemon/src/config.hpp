@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <string>
-#define COPY_BUF_SIZE 8191 
+#define COPY_BUF_SIZE 131072
 #define SOCK_BUF_SIZE 1024
 
 struct Configuration {
@@ -16,7 +16,8 @@ struct Configuration {
     bool isAutoinstall = false;
     bool reinstall_socket = true;
     bool isAllowWarning = false;
-
+    bool isIgnoreLowException = false;
+    
     enum DAEMON_TYPE {
         CFG_DAEMON_SIMPLE,
         CFG_DAEMON_FORKING

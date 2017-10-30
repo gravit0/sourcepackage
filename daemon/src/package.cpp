@@ -6,16 +6,18 @@
 #include <iostream>
 std::mutex Package::mutex;
 
-void Package::install() {
+void Package::install(unsigned int flags) {
 
     if (isStartInstall || isInstalled) return;
     else isStartInstall = true;
     if (!dependencies.empty()) {
+        if(!(flags & flag_nodep))
         for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
             Package* dep = Package::find(*i);
             if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
             if (dep == nullptr) {
                 std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
+                throw package_exception(package_exception::DependencieNotFound);
                 isStartInstall = false;
                 return;
             }
@@ -24,11 +26,17 @@ void Package::install() {
             dep->dependencie.push_back(this);
         }
     }
+    if(!(flags & Package::flag_fakeInstall))
     for (auto& i : files) {
         std::string filename = i.filename;
         std::string pckfile = (dir + filename);
         struct stat statbuff;
-        lstat(pckfile.c_str(), &statbuff);
+        if(lstat(pckfile.c_str(), &statbuff) < 0)
+        {
+            std::cerr << "[WARNING] Object " << filename << " not found" << std::endl;
+            if(!cfg.isIgnoreException) throw package_exception(package_exception::FileNotFound);
+            continue;
+        }
         auto filemode = statbuff.st_mode;
         if (i.mode >= 0) filemode = i.mode;
         if (i.action == FileAction::LINK) symlink(pckfile.c_str(), (cfg.rootdir + filename).c_str());
@@ -82,29 +90,6 @@ void Package::install() {
             if (i.owner >= 0) uid = i.owner;
             if (i.group >= 0) gid = i.group;
             if (i.owner >= 0 || i.group > 0) chown((cfg.rootdir + filename).c_str(), uid, gid);
-        }
-    }
-    isInstalled = true;
-    isStartInstall = false;
-
-}
-
-void Package::fakeinstall() {
-
-    if (isStartInstall || isInstalled) return;
-    else isStartInstall = true;
-    if (!dependencies.empty()) {
-        for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
-            Package* dep = Package::find(*i);
-            if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
-            if (dep == nullptr) {
-                std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
-                isStartInstall = false;
-                return;
-            }
-            dep->fakeinstall();
-            dep->isDependence = true;
-            dep->dependencie.push_back(this);
         }
     }
     isInstalled = true;

@@ -19,8 +19,8 @@
 long long int byteToLong(std::string buffer);
 int byteToInt(std::string buffer);
 std::string IntToByte(int integer);
-void SlashReplace(std::string* str, const unsigned int frist_pos);
-int findNoSlash(const std::string& str, const char ch, const unsigned int frist_pos, bool* isReplace);
+void SlashReplace(std::string* str, const unsigned int frist_pos) noexcept;
+int findNoSlash(const std::string& str, const char ch, const unsigned int frist_pos, bool* isReplace) noexcept;
 
 #endif /* BASEFUNCTIONS_H */
 

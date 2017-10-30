@@ -128,9 +128,9 @@ int main(int argc, char ** argv) {
         std::cout << "Error request!";
     }
     if (args.flagInstall) {
-        if (args.flagU) strcat(buf, "installu  ");
-        else strcat(buf, "install  ");
+        strcat(buf, "install ");
         strcat(buf, args.pkgname.c_str());
+        if (args.flagU) strcat(buf, " u");
     } else if (args.flagRemove) {
         strcat(buf, "remove  ");
         strcat(buf, args.pkgname.c_str());

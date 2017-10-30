@@ -114,7 +114,7 @@ long long int byteToLong(std::string buffer) {
 
 }
 
-int findNoSlash(const std::string& str, const char ch, const unsigned int frist_pos, bool* isReplace) {
+int findNoSlash(const std::string& str, const char ch, const unsigned int frist_pos, bool* isReplace) noexcept {
     bool NoAdept = false;
     unsigned int size = str.size();
     for (unsigned int i = frist_pos; i < size; ++i) {
@@ -135,7 +135,7 @@ int findNoSlash(const std::string& str, const char ch, const unsigned int frist_
     return -1;
 }
 
-void SlashReplace(std::string* str, const unsigned int frist_pos) {
+void SlashReplace(std::string* str, const unsigned int frist_pos) noexcept {
     bool NoAdept = false;
     unsigned int size = str->size();
     for (unsigned int i = frist_pos; i < size; ++i) {
