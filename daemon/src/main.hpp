@@ -41,9 +41,11 @@ public:
     static const unsigned int flag_nodep = 1 << 0;
     void install(unsigned int flags=0);
     void remove_();
-    static Package* find(std::string name);
-    static Package* unload(std::string name);
-    static Package* get(std::string dir);
+    void toIni(std::string dir);
+    static Package* find(const std::string& name);
+    static Package* unload(const std::string& name);
+    static Package* get(const std::string& dir);
+    static Package* get_old(const std::string& dir);
     static std::mutex mutex;
 };
 class package_exception : public std::exception {
@@ -51,13 +53,13 @@ public:
 
     enum Errors {
         DependencieNotFound,
-        ErrorParsePackage
-        
+        ErrorParsePackage,
+        FileNotFound
     };
     Errors thiserr;
     package_exception(Errors err);
     virtual const char* what() const noexcept;
 };
-std::vector<std::string> split(const std::string cmd, const char splitchar);
+std::vector<std::string> split(const std::string& cmd, const char splitchar);
 extern std::list<Package*> packs;
 #endif

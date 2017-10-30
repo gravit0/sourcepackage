@@ -27,13 +27,14 @@ const char* package_exception::what() const noexcept {
     switch (thiserr) {
         case DependencieNotFound: return "Dependencie Not Found";
         case ErrorParsePackage: return "Error parse package";
+        case FileNotFound: return "File in the package was not found";
         default: return "Unknown Error";
     }
 }
 package_exception::package_exception(Errors err) {
     thiserr = err;
 }
-std::vector<std::string> split(const std::string cmd, const char splitchar) {
+std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
@@ -51,7 +52,7 @@ std::vector<std::string> split(const std::string cmd, const char splitchar) {
     }
     return list;
 }
-int config_parse(std::string filename) {
+int config_parse(const std::string& filename) {
 
     std::fstream f(filename, std::ios_base::in);
     if (!f) {
@@ -72,6 +73,8 @@ int config_parse(std::string filename) {
             else if (last == "forking") cfg.daemon_type = Configuration::CFG_DAEMON_FORKING;
         } else if (frist == "reinstall_socket") {
             cfg.reinstall_socket = (last == "true") ? true : false;
+        } else if (frist == "ignore_low_exception") {
+            cfg.isIgnoreLowException = (last == "true") ? true : false;
         }
     }
     return 0;
@@ -115,7 +118,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         } catch(package_exception err)
         {
             if(err.thiserr == package_exception::DependencieNotFound) sock->write("error depnotfound");
-            if(err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
+            else if(err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
+            else if(err.thiserr == package_exception::FileNotFound) sock->write("error pkgfilenotfound");
         }
     } else if (basecmd == "findfile") {
         std::string filename = args[1];
@@ -135,6 +139,22 @@ void cmd_exec(std::string cmd, Client* sock) {
             }
         }
         sock->write("0 " + resultpck->name);
+    } else if (basecmd == "packinfo") {
+        std::string pckname = args[1];
+        Package* pck = Package::find(pckname);
+        if(pck == nullptr) {
+            sock->write("error pkgnotfound");
+            goto ifend;
+        }
+        std::string dep;
+        bool isStart = false;
+        for(auto &i : pck->dependencies)
+        {
+            if(isStart) dep += ":";
+            dep += i;
+        }
+        sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version_major)).str()
+        + " " + pck->dir + " " + pck->author + " " + dep);
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
@@ -144,6 +164,11 @@ void cmd_exec(std::string cmd, Client* sock) {
         } else {
             sock->write("error pkgnotfound");
         }
+    } else if (basecmd == "transform") {
+        std::string pckdir = args[1];
+        Package* t = Package::get(pckdir);
+        t->toIni(pckdir);
+        sock->write("0 ");
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         Package::get(pckdir);
