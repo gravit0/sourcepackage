@@ -18,10 +18,8 @@
 #include "getopts.h"
 #include <functional>
 #include "util.hpp"
+#include "EventManager.hpp"
 #include <boost/property_tree/ini_parser.hpp>
-#include <boost/asio.hpp>
-#include <boost/system/error_code.hpp>
-#include <sys/epoll.h>
 using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
@@ -90,6 +88,7 @@ void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
     if (basecmd == "install") {
+        event.sendEvent(EventListener::EVENT_INSTALL,"install");
         std::string pckname = args[1];
         try {
         Package* pck = Package::find(pckname);
@@ -97,7 +96,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         bool isNoDep = false;
         bool isFullPath = false;
         unsigned int flags = 0;
-        if(args.size() >= 2)
+        if(args.size() > 2)
         {
             for( auto &i : args[2])
             {
@@ -195,8 +194,17 @@ void cmd_exec(std::string cmd, Client* sock) {
         };
         std::thread th(lambda);
         th.detach();
-    } else if (basecmd == "test") {
-        
+    } else if (basecmd == "addListen") {
+        EventListener ev;
+        ev.client = sock;
+        ev.event = std::stoi(args[1]);
+        event.addListener(ev);
+        sock->write("0 ");
+        sock->isAutoClosable = false;
+    } else if (basecmd == "removeListen") {
+        event.removeListener(sock);
+        sock->write("0 ");
+        sock->isAutoClosable = true;
     } else if (basecmd == "unload") {
         std::string pckdir = args[1];
         for (auto i = packs.begin(); i != packs.end(); ++i) {
@@ -329,15 +337,6 @@ int main(int argc, char** argv) {
         }
     }
     if (!cfg.isDaemon) return 0;
-    /*boost::asio::io_service my_io_service;
-    ::unlink("/tmp/foobar"); // Remove previous binding.
-    boost::asio::local::stream_protocol::endpoint ep("/tmp/foobar");
-    boost::asio::local::stream_protocol::acceptor acceptor(my_io_service,ep);
-    boost::asio::local::stream_protocol::socket socket(my_io_service);
-    acceptor.accept(socket);
-    socket.send(boost::asio::buffer("test"));
-    socket.close();
-    return 0;*/
     if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
         int pid = fork();
         if (pid > 0) {

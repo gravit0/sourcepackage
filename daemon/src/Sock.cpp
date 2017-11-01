@@ -73,7 +73,8 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
         int t = wait(cfg.socket_timeout);
         if (t < 0) {
             std::cerr << "Error " << t << std::endl;
-            loopEnable = false;
+            //loopEnable = false;
+            continue;
         }
         for (int i = 0; i < t; i++) {
             std::cerr << "epoll event " << events[i].events << std::endl;

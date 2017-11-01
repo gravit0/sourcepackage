@@ -25,7 +25,12 @@ Package* Package::unload(const std::string& name) {
 Package* Package::get(const std::string& dir) {
 
     RecursionArray arr;
-    boost::property_tree::ini_parser::read_ini(dir + "/package.ini", arr);
+    try {
+        boost::property_tree::ini_parser::read_ini(dir + "/package.ini", arr);
+    } catch(boost::property_tree::ini_parser::ini_parser_error err)
+    {
+        return nullptr;
+    }
     Package* pack = new Package();
     pack->isInstalled = false;
     pack->isDependence = false;

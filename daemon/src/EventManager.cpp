@@ -12,13 +12,35 @@
  */
 
 #include "EventManager.hpp"
+#include <sstream>
 EventManager event;
 EventManager::EventManager() {
-}
-
-EventManager::EventManager(const EventManager& orig) {
 }
 
 EventManager::~EventManager() {
 }
 
+void EventManager::addListener(EventListener ev)
+{
+    list.push_back(ev);
+}
+void EventManager::sendEvent(int event, std::string data)
+{
+    for(auto &i : list)
+    {
+        if(i.event & event)
+        {
+            i.client->write("event " + ((std::ostringstream&)(std::ostringstream() << event)).str() + data);
+        }
+    }
+}
+void EventManager::removeListener(Client* client)
+{
+    for(auto i = list.begin();i!=list.end();++i)
+    {
+        if((*i).client == client)
+        {
+            list.erase(i);
+        }
+    }
+}
