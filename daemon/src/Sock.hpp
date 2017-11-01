@@ -18,7 +18,7 @@
 #include <sys/socket.h>
 #include <exception>
 #include <boost/noncopyable.hpp>
-
+#include <sys/epoll.h>
 class Client : public boost::noncopyable {
 private:
     int sock;
@@ -38,11 +38,15 @@ private:
     int sock_;
     const char* filename_c;
     bool loopEnable;
+    int epollsock;
+    int max_connect;
 public:
-    Sock(std::string filepath);
+    epoll_event* events;
+    Sock(std::string filepath, int max_connect);
     void loop(void (*lpfunc)(std::string, Client*));
     int deattach();
     void stop();
+    int wait(int timeout);
     virtual ~Sock();
 private:
 

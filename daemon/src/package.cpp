@@ -34,7 +34,7 @@ void Package::install(unsigned int flags) {
         if(lstat(pckfile.c_str(), &statbuff) < 0)
         {
             std::cerr << "[WARNING] Object " << filename << " not found" << std::endl;
-            if(!cfg.isIgnoreException) throw package_exception(package_exception::FileNotFound);
+            if(!cfg.isIgnoreLowException) throw package_exception(package_exception::FileNotFound);
             continue;
         }
         auto filemode = statbuff.st_mode;

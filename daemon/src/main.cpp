@@ -19,6 +19,9 @@
 #include <functional>
 #include "util.hpp"
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
+#include <sys/epoll.h>
 using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
@@ -173,7 +176,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string pckdir = args[1];
         Package::get(pckdir);
         sock->write("0 ");
-    } else if (basecmd == "apistream") {
+    } else if (basecmd == "eventable") {
         sock->isAutoClosable = false;
         auto lambda = [sock]() {
             bool isloop = true;
@@ -192,6 +195,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         };
         std::thread th(lambda);
         th.detach();
+    } else if (basecmd == "test") {
+        
     } else if (basecmd == "unload") {
         std::string pckdir = args[1];
         for (auto i = packs.begin(); i != packs.end(); ++i) {
@@ -324,6 +329,15 @@ int main(int argc, char** argv) {
         }
     }
     if (!cfg.isDaemon) return 0;
+    /*boost::asio::io_service my_io_service;
+    ::unlink("/tmp/foobar"); // Remove previous binding.
+    boost::asio::local::stream_protocol::endpoint ep("/tmp/foobar");
+    boost::asio::local::stream_protocol::acceptor acceptor(my_io_service,ep);
+    boost::asio::local::stream_protocol::socket socket(my_io_service);
+    acceptor.accept(socket);
+    socket.send(boost::asio::buffer("test"));
+    socket.close();
+    return 0;*/
     if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
         int pid = fork();
         if (pid > 0) {
@@ -331,7 +345,7 @@ int main(int argc, char** argv) {
         }
     }
     try {
-        gsock = new Sock(cfg.sockfile);
+        gsock = new Sock(cfg.sockfile,cfg.max_connect+1);
         gsock->loop(&cmd_exec);
     } catch (socket_exception e) {
         std::cout << "[CRITICAL] An exception was thrown out. Information: " << e.what() << std::endl;

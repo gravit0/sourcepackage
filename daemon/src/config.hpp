@@ -17,7 +17,8 @@ struct Configuration {
     bool reinstall_socket = true;
     bool isAllowWarning = false;
     bool isIgnoreLowException = false;
-    
+    int socket_timeout = 1000;
+    int max_connect = 10;
     enum DAEMON_TYPE {
         CFG_DAEMON_SIMPLE,
         CFG_DAEMON_FORKING
