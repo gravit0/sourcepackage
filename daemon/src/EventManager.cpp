@@ -22,6 +22,7 @@ EventManager::~EventManager() {
 
 void EventManager::addListener(EventListener ev)
 {
+    ev.client->isListener = true;
     list.push_back(ev);
 }
 void EventManager::sendEvent(int event, std::string data)

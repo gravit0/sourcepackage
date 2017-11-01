@@ -88,7 +88,6 @@ void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
     if (basecmd == "install") {
-        event.sendEvent(EventListener::EVENT_INSTALL,"install");
         std::string pckname = args[1];
         try {
         Package* pck = Package::find(pckname);
@@ -116,7 +115,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         if(isFakeInstall) flags |= Package::flag_fakeInstall;
         if(isNoDep) flags |= Package::flag_nodep;
         pck->install(flags);
-        sock->write("0 " + pck->daemonfile + " " + pck->logfile);
+        sock->write("0 ");
+        event.sendEvent(EventListener::EVENT_INSTALL,pck->dir + " " + (pck->isDaemon ? "d" : ""));
         } catch(package_exception err)
         {
             if(err.thiserr == package_exception::DependencieNotFound) sock->write("error depnotfound");
@@ -162,6 +162,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         Package* pck = Package::find(pckname);
         if (pck != nullptr) {
             pck->remove_();
+            event.sendEvent(EventListener::EVENT_REMOVE,pck->dir + " " + (pck->isDaemon ? "d" : ""));
             sock->write("0 ");
         } else {
             sock->write("error pkgnotfound");
@@ -214,13 +215,12 @@ void cmd_exec(std::string cmd, Client* sock) {
             }
         }
         sock->write("0 ");
-    } else if (basecmd == "setroot") {
-        std::string rootdir = args[1];
-        cfg.rootdir = rootdir;
-        sock->write("0 ");
-    } else if (basecmd == "setpckdir") {
-        std::string packsdir = args[1];
-        cfg.packsdir = packsdir;
+    } else if (basecmd == "config") {
+        std::string param = args[1];
+        std::string value = args[2];
+        if(param == "rootdir") cfg.rootdir = value;
+        else if(param == "packsdir") cfg.packsdir = value;
+        else if(param == "socket_timeout") cfg.socket_timeout = std::stoi(value);
         sock->write("0 ");
     } else if (basecmd == "getpacks") {
         std::string reply;

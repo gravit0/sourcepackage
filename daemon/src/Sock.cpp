@@ -22,7 +22,7 @@
 #include <thread>
 #include <mutex>
 #include <map>
-
+#include "EventManager.hpp"
 Sock::Sock(std::string filepath, int max_connect) {
     this->max_connect = max_connect;
     epollsock = epoll_create(max_connect);
@@ -136,8 +136,9 @@ int Client::read() {
 }
 
 Client::~Client() {
-    std::cerr << "Client " << sock << " destructor" << std::endl;
     close(sock);
+    if(isListener) event.removeListener(this);
+    std::cerr << "Client " << sock << " destructor" << std::endl;
 }
 
 void Sock::stop() {

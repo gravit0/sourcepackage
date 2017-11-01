@@ -50,6 +50,7 @@ struct Args {
     bool flagLoad = false;
     bool flagGetpack = false;
     bool flagStop = false;
+    bool flagSetConfig = false;
     std::string pkgname;
     bool flagU = false;
 };
@@ -85,8 +86,8 @@ int main(int argc, char ** argv) {
             }
             case 'c':
             {
-                strcat(buf, "setconfig  ");
-                strcat(buf, optarg);
+                args.flagSetConfig = true;
+                args.pkgname = optarg;
                 break;
 
             }
@@ -124,7 +125,7 @@ int main(int argc, char ** argv) {
     //Проверка противоречий
     if ((int) args.flagInstall + (int) args.flagRemove
             + (int) args.flagLoad + (int) args.flagStop
-            + (int) args.flagGetpack > 1) {
+            + (int) args.flagGetpack + (int) args.flagSetConfig > 1) {
         std::cout << "Error request!";
     }
     if (args.flagInstall) {
@@ -141,9 +142,12 @@ int main(int argc, char ** argv) {
     } else if (args.flagGetpack) {
         strcat(buf, "getpacks  ");
         strcat(buf, args.pkgname.c_str());
-    } else if (args.flagStop) {
+    } else if (args.flagSetConfig) {
+        strcat(buf, "setconfig  ");
+        strcat(buf, args.pkgname.c_str());
+    }else if (args.flagStop) {
         strcat(buf, "stop  ");
-    }
+    } 
     int sock;
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr srvr_name;

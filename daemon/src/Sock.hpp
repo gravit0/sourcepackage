@@ -23,6 +23,7 @@ class Client : public boost::noncopyable {
 private:
     int sock;
 public:
+    bool isListener = false;
     bool isAutoClosable = true;
     char buf[SOCK_BUF_SIZE];
     unsigned int bytes;

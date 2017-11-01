@@ -28,15 +28,14 @@ public:
     int version_build;
     std::string author;
     std::string dir;
-    std::string daemonfile;
     std::string license;
-    std::string logfile;
     std::vector<std::string> dependencies;
     std::list<FileAction> files;
     std::vector<Package*> dependencie;
     bool isInstalled;
     bool isDependence;
     bool isStartInstall;
+    bool isDaemon = false;
     static const unsigned int flag_fakeInstall = 1 << 0;
     static const unsigned int flag_nodep = 1 << 0;
     void install(unsigned int flags=0);
