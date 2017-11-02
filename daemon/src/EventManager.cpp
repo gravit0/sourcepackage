@@ -19,7 +19,10 @@ EventManager::EventManager() {
 
 EventManager::~EventManager() {
 }
-
+std::map<int,char> EventManager::eventmap{
+    {EventListener::EVENT_INSTALL,'i'},
+    {EventListener::EVENT_REMOVE,'r'}
+};
 void EventManager::addListener(EventListener ev)
 {
     ev.client->isListener = true;

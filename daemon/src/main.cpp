@@ -3,15 +3,11 @@
 #include <string>
 #include <vector>
 #include <unistd.h>
-#include <fcntl.h>           /* Definition of AT_* constants */
 #include "main.hpp"
 #include <string.h>
 #include <sys/stat.h>
 #include <list>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/signal.h>
-#include <arpa/inet.h>
 #include <thread>
 #include "basefunctions.h"
 #include "Sock.hpp"
@@ -121,8 +117,14 @@ int main(int argc, char** argv) {
                 config_file = std::string(optarg);
                 break;
             case 'v':
-                std::cout << "Source Package v 0.2" << std::endl;
+            {
+                std::cout << "Source Package 1.0.0-test" << std::endl;
+                std::cout << "Author: Gravit" << std::endl;
+                std::cout << "Github: https://github.com/gravit0/sourcepackage" << std::endl;
+                std::cout << "This free software: you can modify and distribute it." << std::endl;
+                return 0;
                 break;
+            }
             default:
                 /* сюда на самом деле попасть невозможно. */
                 break;
@@ -131,15 +133,15 @@ int main(int argc, char** argv) {
     }
     if (getopts::longopts.isNoWarning == 1) cfg.isAllowWarning = false;
     if (getopts::longopts.isHelp == 1) {
-        std::cout << "Использование: " << std::string(argv[0]) << " [КЛЮЧ]" << std::endl;
-        std::cout << "Аргументы:" << std::endl;
-        std::cout << "-d,  --daemon    Запускает демон" << std::endl;
-        std::cout << "-c [config]      Использовать конфиг [config]" << std::endl;
-        std::cout << "-s [sockfile]    Использовать UNIX сокет [sockfile]" << std::endl;
-        std::cout << "-r [rootdir]     Изменяет root директорию" << std::endl;
-        std::cout << "-v               Версия программы" << std::endl;
-        std::cout << "--no-forking     Запрет daemontype=forking" << std::endl;
-        std::cout << "--no-warning     Запрет вывода предупреждений" << std::endl;
+        std::cout << "USAGE: " << std::string(argv[0]) << " [ARGS]" << std::endl;
+        std::cout << "ARGS:" << std::endl;
+        std::cout << "-d,  --daemon    start daemonn, listen socket" << std::endl;
+        std::cout << "-c [config]      use config [config]" << std::endl;
+        std::cout << "-s [sockfile]    use UNIX socket [sockfile]" << std::endl;
+        std::cout << "-r [rootdir]     set root directory" << std::endl;
+        std::cout << "-v               program version" << std::endl;
+        std::cout << "--no-forking     Deny daemontype=forking" << std::endl;
+        std::cout << "--no-warning     Deny print warnings" << std::endl;
         return 0;
     }
     if (getopts::longopts.isDaemon == 1) cfg.isDaemon = true;
@@ -186,5 +188,6 @@ int main(int argc, char** argv) {
     for (auto i = packs.begin(); i != packs.end(); ++i) {
         delete(*i);
     }
+    delete logger;
     return 0;
 }

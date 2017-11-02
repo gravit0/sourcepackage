@@ -15,6 +15,7 @@
 #define EVENTMANAGER_HPP
 #include <string>
 #include <list>
+#include <map>
 #include "Sock.hpp"
 struct EventListener {
     static const int EVENT_INSTALL = 1 << 0;
@@ -31,6 +32,7 @@ public:
     void sendEvent(int event, std::string data);
     void addListener(EventListener ev);
     void removeListener(Client* client);
+    static std::map<int,char> eventmap;
 private:
 
 };

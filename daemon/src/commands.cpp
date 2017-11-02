@@ -112,18 +112,24 @@ void cmd_exec(std::string cmd, Client* sock) {
         event.addListener(ev);
         sock->write("0 ");
         sock->isAutoClosable = false;
+    } else if (basecmd == "freeme") {
+        sock->isAutoClosable = false;
+        sock->write("0 ");
     } else if (basecmd == "removeListen") {
         event.removeListener(sock);
         sock->write("0 ");
         sock->isAutoClosable = true;
     } else if (basecmd == "unload") {
         std::string pckdir = args[1];
+        Package* pck = Package::find(pckdir);
+        delete pck;
+        packs.remove(pck);
+        sock->write("0 ");
+    } else if (basecmd == "unloadall") {
         for (auto i = packs.begin(); i != packs.end(); ++i) {
-            if ((*i)->name == pckdir) {
-                delete (*i);
-                packs.erase(i);
-            }
+            delete(*i);
         }
+        packs.clear();
         sock->write("0 ");
     } else if (basecmd == "config") {
         std::string param = args[1];
