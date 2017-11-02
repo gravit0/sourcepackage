@@ -30,11 +30,11 @@ public:
     LOG_TYPE type;
     Logger(LOG_TYPE t, std::string file);
     Logger(LOG_TYPE t);
-    void logg(std::string str);
+    void logg(char level, std::string str);
     virtual ~Logger();
 private:
 
 };
-
+extern Logger * logger;
 #endif /* LOGGER_H */
 

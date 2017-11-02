@@ -5,7 +5,8 @@
 #include <mutex>
 #include <list>
 #include "config.hpp"
-
+#include "Logger.hpp"
+#include "Sock.hpp"
 struct FileAction {
     std::string filename;
     int mode;
@@ -49,7 +50,6 @@ public:
 };
 class package_exception : public std::exception {
 public:
-
     enum Errors {
         DependencieNotFound,
         ErrorParsePackage,
@@ -61,4 +61,7 @@ public:
 };
 std::vector<std::string> split(const std::string& cmd, const char splitchar);
 extern std::list<Package*> packs;
+extern void cmd_exec(std::string cmd, Client* sock);
+extern Sock* gsock;
+extern int config_parse(const std::string& filename);
 #endif

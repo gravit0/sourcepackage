@@ -22,7 +22,6 @@ namespace RecArrUtils {
     char SlashReplaceEx(std::string* str, const unsigned int frist_pos);
     RecursionArray fromArcan(const std::string& str);
     std::string toArcan(const RecursionArray& tree);
-    //std::string toCfg(const RecursionArray& tree, const std::string& prefix="");
     std::string printTreeEx(const RecursionArray& tree, const std::string& prefix = "");
     std::string IntToByte(int integer);
 }

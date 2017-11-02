@@ -24,6 +24,8 @@ using namespace std;
 std::mutex pack_mutex;
 std::list<Package*> packs;
 Configuration cfg;
+Logger * logger;
+Sock* gsock;
 const char* package_exception::what() const noexcept {
     switch (thiserr) {
         case DependencieNotFound: return "Dependencie Not Found";
@@ -80,186 +82,16 @@ int config_parse(const std::string& filename) {
     }
     return 0;
 }
-std::list<std::thread*> closed_thread;
-std::list<int> closed_socks;
-Sock* gsock;
-
-void cmd_exec(std::string cmd, Client* sock) {
-    std::vector<std::string> args = split(cmd, ' ');
-    std::string basecmd = args[0];
-    if (basecmd == "install") {
-        std::string pckname = args[1];
-        try {
-        Package* pck = Package::find(pckname);
-        bool isFakeInstall = false;
-        bool isNoDep = false;
-        bool isFullPath = false;
-        unsigned int flags = 0;
-        if(args.size() > 2)
-        {
-            for( auto &i : args[2])
-            {
-                if(i == 'f') isFakeInstall = true;
-                else if(i == 'u') isFullPath = true;
-                else if(i == 'd') isNoDep = true;
-            }
-        }
-        if (pck == nullptr) {
-            if(isFullPath) Package::get(pckname);
-            else pck = Package::get(cfg.packsdir + pckname);
-        }
-        if (pck == nullptr) {
-            sock->write("error pkgnotfound");
-            goto ifend;
-        }
-        if(isFakeInstall) flags |= Package::flag_fakeInstall;
-        if(isNoDep) flags |= Package::flag_nodep;
-        pck->install(flags);
-        sock->write("0 ");
-        event.sendEvent(EventListener::EVENT_INSTALL,pck->dir + " " + (pck->isDaemon ? "d" : ""));
-        } catch(package_exception err)
-        {
-            if(err.thiserr == package_exception::DependencieNotFound) sock->write("error depnotfound");
-            else if(err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
-            else if(err.thiserr == package_exception::FileNotFound) sock->write("error pkgfilenotfound");
-        }
-    } else if (basecmd == "findfile") {
-        std::string filename = args[1];
-        bool isBreak;
-        Package* resultpck = nullptr;
-        for (auto &i : packs) {
-            isBreak = false;
-            for (auto&j : i->files) {
-                if (j.filename == args[2]) {
-                    isBreak = true;
-                    break;
-                }
-            }
-            if (isBreak) {
-                resultpck = i;
-                break;
-            }
-        }
-        sock->write("0 " + resultpck->name);
-    } else if (basecmd == "packinfo") {
-        std::string pckname = args[1];
-        Package* pck = Package::find(pckname);
-        if(pck == nullptr) {
-            sock->write("error pkgnotfound");
-            goto ifend;
-        }
-        std::string dep;
-        bool isStart = false;
-        for(auto &i : pck->dependencies)
-        {
-            if(isStart) dep += ":";
-            dep += i;
-        }
-        sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version_major)).str()
-        + " " + pck->dir + " " + pck->author + " " + dep);
-    } else if (basecmd == "remove") {
-        std::string pckname = args[1];
-        Package* pck = Package::find(pckname);
-        if (pck != nullptr) {
-            pck->remove_();
-            event.sendEvent(EventListener::EVENT_REMOVE,pck->dir + " " + (pck->isDaemon ? "d" : ""));
-            sock->write("0 ");
-        } else {
-            sock->write("error pkgnotfound");
-        }
-    } else if (basecmd == "transform") {
-        std::string pckdir = args[1];
-        Package* t = Package::get(pckdir);
-        t->toIni(pckdir);
-        sock->write("0 ");
-    } else if (basecmd == "load") {
-        std::string pckdir = args[1];
-        Package::get(pckdir);
-        sock->write("0 ");
-    } else if (basecmd == "eventable") {
-        sock->isAutoClosable = false;
-        auto lambda = [sock]() {
-            bool isloop = true;
-            sock->write("0 ");
-            while (isloop) {
-                if (sock->read() < 1) {
-                    std::cout << "Apistream closed.";
-                    isloop = false;
-                    break;
-                }
-                sock->buf[sock->bytes] = 0;
-                std::string command(sock->buf, sock->bytes);
-                cmd_exec(command, sock);
-            }
-            delete sock;
-        };
-        std::thread th(lambda);
-        th.detach();
-    } else if (basecmd == "addListen") {
-        EventListener ev;
-        ev.client = sock;
-        ev.event = std::stoi(args[1]);
-        event.addListener(ev);
-        sock->write("0 ");
-        sock->isAutoClosable = false;
-    } else if (basecmd == "removeListen") {
-        event.removeListener(sock);
-        sock->write("0 ");
-        sock->isAutoClosable = true;
-    } else if (basecmd == "unload") {
-        std::string pckdir = args[1];
-        for (auto i = packs.begin(); i != packs.end(); ++i) {
-            if ((*i)->name == pckdir) {
-                delete (*i);
-                packs.erase(i);
-            }
-        }
-        sock->write("0 ");
-    } else if (basecmd == "config") {
-        std::string param = args[1];
-        std::string value = args[2];
-        if(param == "rootdir") cfg.rootdir = value;
-        else if(param == "packsdir") cfg.packsdir = value;
-        else if(param == "socket_timeout") cfg.socket_timeout = std::stoi(value);
-        sock->write("0 ");
-    } else if (basecmd == "getpacks") {
-        std::string reply;
-        for (auto& i : packs) {
-            reply += i->name;
-            reply += ":";
-            if (i->isInstalled) reply += "i";
-            if (i->isDependence) reply += "d";
-            reply += ' ';
-        }
-        sock->write(reply);
-    } else if (basecmd == "setconfig") {
-        std::string cfgdir = args[1];
-        int result = config_parse(cfgdir);
-        if (result == 1) {
-            sock->write("error cfgnotfound");
-        } else {
-            sock->write("0 ");
-        }
-    } else if (basecmd == "stop") {
-        gsock->stop();
-        sock->write("0 ");
-    }
-ifend:
-    ;
-}
-
 void signal_handler(int sig) {
     if (gsock != nullptr) delete gsock;
     if (sig == SIGTERM) exit(0);
     exit(-sig);
 }
-
 int main(int argc, char** argv) {
+    logger = new Logger(Logger::LOG_STDERR);
+    logger->logg('C',"test");
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
-    if (getpid() == 1) {
-        std::cout << "I am NOT init!" << std::endl;
-    }
     int opt = getopt_long(argc, argv, getopts::optString, getopts::long_options, NULL);
     cfg.isDaemon = false;
     std::string config_file = "/etc/sp.cfg";
@@ -319,18 +151,17 @@ int main(int argc, char** argv) {
     }
     if (cfg.isAllowWarning) {
         struct stat statbuff;
-        if (stat(cfg.rootdir.c_str(), &statbuff) != 0) std::cout << "[WARNING] rootdir " << cfg.rootdir << " not found" << std::endl;
-        if (stat(cfg.packsdir.c_str(), &statbuff) != 0) std::cout << "[WARNING] packsdir " << cfg.packsdir << " not found" << std::endl;
+        if (stat(cfg.rootdir.c_str(), &statbuff) != 0) logger->logg('W',"rootdir " + cfg.rootdir + " not found");
+        if (stat(cfg.packsdir.c_str(), &statbuff) != 0) logger->logg('W',"packsdir " + cfg.packsdir + " not found");
     }
     if (cfg.isAutoinstall) {
         auto list = split(cfg.autoinstall, ':');
-        std::cout << list.size();
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
             Package* pck = Package::find(pckname);
             if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr) {
-                std::cerr << "package " << pckname << " not found" << std::endl;
+                logger->logg('E',"package " + pckname + " not found");
                 continue;
             }
             pck->install();
@@ -347,8 +178,8 @@ int main(int argc, char** argv) {
         gsock = new Sock(cfg.sockfile,cfg.max_connect+1);
         gsock->loop(&cmd_exec);
     } catch (socket_exception e) {
-        std::cout << "[CRITICAL] An exception was thrown out. Information: " << e.what() << std::endl;
-        perror("[CRITICAL] Failed reason:");
+        logger->logg('C',"An exception was thrown out. Information: " + std::string(e.what()));
+        perror("[C] Failed reason:");
         exit(-1);
     }
     delete gsock;

@@ -26,7 +26,7 @@ Logger::Logger(LOG_TYPE t) {
     else if (t == LOG_TYPE::LOG_KMSG) of.open("/proc/kmsg", std::ios_base::out);
 }
 
-void Logger::logg(std::string str) {
+void Logger::logg(char level, std::string str) {
     if (type == LOG_TYPE::LOG_FILE || type == LOG_TYPE::LOG_KMSG) of << str;
     else if (type == LOG_TYPE::LOG_STDOUT) std::cout << str;
     else if (type == LOG_TYPE::LOG_STDERR) std::cerr << str;

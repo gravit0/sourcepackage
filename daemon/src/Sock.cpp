@@ -23,6 +23,7 @@
 #include <mutex>
 #include <map>
 #include "EventManager.hpp"
+#include "Logger.hpp"
 Sock::Sock(std::string filepath, int max_connect) {
     this->max_connect = max_connect;
     epollsock = epoll_create(max_connect);
@@ -68,20 +69,17 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
     ev.data.fd = sock_;
     epoll_ctl(epollsock, EPOLL_CTL_ADD, sock_, &ev);
 
-    std::cout << "Start epoll" << std::endl;
     while (loopEnable) {
         int t = wait(cfg.socket_timeout);
         if (t < 0) {
-            std::cerr << "Error " << t << std::endl;
+            logger->logg('C',"Error " + t);
             //loopEnable = false;
             continue;
         }
         for (int i = 0; i < t; i++) {
-            std::cerr << "epoll event " << events[i].events << std::endl;
             if (events[i].events & EPOLLIN) {
                 if (events[i].data.fd == sock_) {
                     int native_sock = accept(sock_, NULL, NULL);
-                    std::cerr << "Accept " << native_sock << std::endl;
                     static struct epoll_event ev;
                     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
                     ev.data.fd = native_sock;
@@ -107,7 +105,6 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
             }
             if (events[i].events & EPOLLHUP)
             {
-                std::cerr << "event hup signal: " << events[i].data.fd << std::endl;
                 delete smap[events[i].data.fd];
                 smap.erase(events[i].data.fd);
             }
@@ -138,7 +135,6 @@ int Client::read() {
 Client::~Client() {
     close(sock);
     if(isListener) event.removeListener(this);
-    std::cerr << "Client " << sock << " destructor" << std::endl;
 }
 
 void Sock::stop() {

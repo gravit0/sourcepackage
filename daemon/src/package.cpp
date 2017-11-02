@@ -16,7 +16,6 @@ void Package::install(unsigned int flags) {
             Package* dep = Package::find(*i);
             if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
             if (dep == nullptr) {
-                std::cerr << "Package " << (*i) << "not found(dep)" << std::endl;
                 throw package_exception(package_exception::DependencieNotFound);
                 isStartInstall = false;
                 return;
@@ -33,7 +32,6 @@ void Package::install(unsigned int flags) {
         struct stat statbuff;
         if(lstat(pckfile.c_str(), &statbuff) < 0)
         {
-            std::cerr << "[WARNING] Object " << filename << " not found" << std::endl;
             if(!cfg.isIgnoreLowException) throw package_exception(package_exception::FileNotFound);
             continue;
         }

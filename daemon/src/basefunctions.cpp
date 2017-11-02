@@ -24,21 +24,6 @@ std::string IntToByte(int integer) {
     std::string abc = result.str();
     return abc;
 }
-//std::string IntToByte(int paramInt)
-//{
-//     std::string arrayOfByte;
-//     char id=0;
-//     for (int i = 0; i < 4; i++)
-//     {
-//         unsigned char z = (paramInt >> (i * 8));
-//         if(z!=0)
-//         {
-//             arrayOfByte[id] = z;
-//             id++;
-//         }
-//     }
-//     return arrayOfByte;
-//}
 
 int byteToInt(std::string buffer) {
     if (buffer.size() > 4 || buffer.size() == 0)
@@ -59,11 +44,6 @@ int byteToInt(std::string buffer) {
         resu = resu + ((unsigned char) (buffer.at(2)))*256;
         resu = resu + ((unsigned char) (buffer.at(3)));
     }
-    //    if(buffer.size()<=4) resu=resu+((unsigned char)(buffer.at(0)));
-    //    if(buffer.size()<=3) resu=resu+((unsigned char)(buffer.at(1)))*256;
-    //    if(buffer.size()<=2) resu=resu+((unsigned char)(buffer.at(2)))*256*256;
-    //    if(buffer.size()==1) resu=resu+((unsigned char)(buffer.at(3)))*256*256*256;
-
     return *((int*) (&resu));
 }
 
