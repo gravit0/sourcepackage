@@ -84,6 +84,8 @@ void signal_handler(int sig) {
     exit(-sig);
 }
 int main(int argc, char** argv) {
+    //Package* pck = Package::get("/home/gravit/packs/ld/");
+    //return 0;
     logger = new Logger(Logger::LOG_STDERR);
     logger->logg('C',"test");
     gsock = nullptr;

@@ -31,6 +31,8 @@ Package* Package::get(const std::string& dir) {
     {
         return nullptr;
     }
+    //if(RecArrUtils::ini_parser(dir + "/package.ini",&arr) != 0) return nullptr;
+    //RecArrUtils::printTree(arr);
     Package* pack = new Package();
     pack->isInstalled = false;
     pack->isDependence = false;

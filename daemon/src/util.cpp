@@ -13,6 +13,7 @@
 #include "util.hpp"
 #include "basefunctions.h"
 #include <iostream>
+#include <fstream>
 using namespace std;
 namespace RecArrUtils {
 
@@ -167,5 +168,39 @@ norecursion:
             i = second_pos + 1;
         }
         return arr;
+    }
+    
+    int ini_parser(std::string filename,RecursionArray* arr)
+    {
+        std::string category;
+        std::fstream f(filename,std::ios_base::in);
+        if(!f)
+        {
+            return -1;
+        }
+        std::string info;
+        RecursionArray m;
+        while(std::getline(f,info))
+        {
+            if(info[0] == '#') continue;
+            int size = info.size();
+            if(info[0] == '[')
+            {
+                if(!category.empty())
+                {
+                    arr->push_back(RecursionArray::value_type(category,m));
+                    m.clear();
+                }
+                category = info.substr(1,size - 2);
+                continue;
+            }
+            int pos = info.find('=');
+            if(pos<0) continue;
+            std::string key = info.substr(0,pos);
+            std::string value = info.substr(pos+1,size-pos);
+            m.push_back(RecursionArray::value_type(key,RecursionArray(value)));
+        }
+        arr->push_back(RecursionArray::value_type(category,m));
+        return 0;
     }
 }

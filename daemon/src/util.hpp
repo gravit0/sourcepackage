@@ -24,6 +24,7 @@ namespace RecArrUtils {
     std::string toArcan(const RecursionArray& tree);
     std::string printTreeEx(const RecursionArray& tree, const std::string& prefix = "");
     std::string IntToByte(int integer);
+    int ini_parser(std::string filename,RecursionArray* arr);
 }
 #endif /* UTIL_HPP */
 
