@@ -13,6 +13,8 @@
 #include "main.hpp"
 #include "EventManager.hpp"
 #include <sstream>
+#include <iostream>
+#include <sys/stat.h>
 void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
@@ -153,6 +155,11 @@ void cmd_exec(std::string cmd, Client* sock) {
         sock->write(reply);
     } else if (basecmd == "setconfig") {
         std::string cfgdir = args[1];
+        for(auto &i : args)
+        {
+            std::cout << i << std::endl;
+        }
+        std::cerr << "New config dir " << cfgdir << std::endl;
         int result = config_parse(cfgdir);
         if (result == 1) {
             sock->write("error cfgnotfound");

@@ -62,10 +62,6 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
 }
 int config_parse(const std::string& filename) {
 
-    std::fstream f(filename, std::ios_base::in);
-    if (!f) {
-        return 1;
-    }
     RecursionArray acfg;
     boost::property_tree::ini_parser::read_ini(filename, acfg);
     RecursionArray maincfg = acfg.get_child("main");
@@ -186,14 +182,15 @@ int main(int argc, char** argv) {
         }
     }
     if (!cfg.isDaemon) return 0;
-    if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
-        int pid = fork();
-        if (pid > 0) {
-            exit(0);
-        }
-    }
+    
     try {
         gsock = new Sock(cfg.sockfile,cfg.max_connect+1);
+        if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
+        int pid = fork();
+            if (pid > 0) {
+                exit(0);
+            }
+        }
         gsock->loop(&cmd_exec);
     } catch (socket_exception e) {
         logger->logg('C',"An exception was thrown out. Information: " + std::string(e.what()));

@@ -33,11 +33,10 @@ Sock::Sock(std::string filepath, int max_connect) {
     if (sock_ < 0) {
         throw socket_exception(socket_exception::SocketError);
     }
-    srvr_name.sa_family = AF_UNIX;
+    srvr_name.sun_family = AF_UNIX;
     filename_c = filepath.c_str();
-    strcpy(srvr_name.sa_data, filename_c);
-    if (bind(sock_, &srvr_name, strlen(srvr_name.sa_data) +
-            sizeof (srvr_name.sa_family)) < 0) {
+    strcpy(srvr_name.sun_path, filename_c);
+    if (bind(sock_, (sockaddr*) &srvr_name, sizeof(srvr_name)) < 0) {
         throw socket_exception(socket_exception::BindError);
     }
     listen(sock_, max_connect-1);
@@ -124,6 +123,7 @@ int Sock::deattach() {
 
 int Client::write(std::string str) {
     const char* cstr = str.c_str();
+    std::cout << "Client recv: " << str << std::endl;
     return send(sock, cstr, str.size() + 1, 0);
 }
 

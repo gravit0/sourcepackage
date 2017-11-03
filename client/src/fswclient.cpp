@@ -20,6 +20,7 @@
 #include <sys/socket.h>
 #include <getopt.h>
 #include "basefunctions.h"
+#include <sys/un.h>
 #include <vector>
 #define SOCK_NAME sock_path
 #define BUF_SIZE 256
@@ -133,32 +134,33 @@ int main(int argc, char ** argv) {
         strcat(buf, args.pkgname.c_str());
         if (args.flagU) strcat(buf, " u");
     } else if (args.flagRemove) {
-        strcat(buf, "remove  ");
+        strcat(buf, "remove ");
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagLoad) {
         if (args.flagU) strcat(buf, "unload  ");
-        else strcat(buf, "load  ");
+        else strcat(buf, "load ");
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagGetpack) {
-        strcat(buf, "getpacks  ");
+        strcat(buf, "getpacks ");
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagSetConfig) {
-        strcat(buf, "setconfig  ");
+        strcat(buf, "setconfig ");
         strcat(buf, args.pkgname.c_str());
+        strcat(buf, " ");
     }else if (args.flagStop) {
         strcat(buf, "stop  ");
     } 
     int sock;
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    struct sockaddr srvr_name;
+    struct sockaddr_un srvr_name;
     if (sock < 0) {
         perror("socket failed");
         return EXIT_FAILURE;
     }
-    srvr_name.sa_family = AF_UNIX;
-    if (init_path) strcpy(srvr_name.sa_data, SOCK_NAME);
-    else strcpy(srvr_name.sa_data, "/run/sp");
-    if (connect(sock, &srvr_name, sizeof (srvr_name)) < 0) {
+    srvr_name.sun_family = AF_UNIX;
+    if (init_path) strcpy(srvr_name.sun_path, SOCK_NAME);
+    else strcpy(srvr_name.sun_path, "/run/sp");
+    if (connect(sock, (sockaddr*) &srvr_name, sizeof (srvr_name)) < 0) {
         perror("connect failed");
         exit(2);
     }

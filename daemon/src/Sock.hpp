@@ -16,6 +16,7 @@
 #include "config.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <exception>
 #include <boost/noncopyable.hpp>
 #include <sys/epoll.h>
@@ -35,7 +36,7 @@ public:
 
 class Sock : public boost::noncopyable {
 private:
-    struct sockaddr srvr_name;
+    struct sockaddr_un srvr_name;
     int sock_;
     const char* filename_c;
     bool loopEnable;
