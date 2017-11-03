@@ -105,6 +105,9 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string pckdir = args[1];
         Package::get(pckdir);
         sock->write("0 ");
+    } else if (basecmd == "fixdir") {
+        chdir("/");
+        sock->write("0 ");
     } else if (basecmd == "addListen") {
         EventListener ev;
         ev.client = sock;
@@ -159,6 +162,9 @@ void cmd_exec(std::string cmd, Client* sock) {
     } else if (basecmd == "stop") {
         gsock->stop();
         sock->write("0 ");
+    } else
+    {
+        sock->write("error commandnotfound");
     }
 ifend:
     ;

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+ cmake_minimum_required(VERSION 3.1)
 
 project(sp_daemon)
 set( SOURCE_ROOT ./src )

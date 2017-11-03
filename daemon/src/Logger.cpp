@@ -27,9 +27,9 @@ Logger::Logger(LOG_TYPE t) {
 }
 
 void Logger::logg(char level, std::string str) {
-    if (type == LOG_TYPE::LOG_FILE || type == LOG_TYPE::LOG_KMSG) of << str << std::endl;
-    else if (type == LOG_TYPE::LOG_STDOUT) std::cout << str << std::endl;
-    else if (type == LOG_TYPE::LOG_STDERR) std::cerr << str << std::endl;
+    if (type == LOG_TYPE::LOG_FILE || type == LOG_TYPE::LOG_KMSG) of << "[" << level << "] " << str << std::endl;
+    else if (type == LOG_TYPE::LOG_STDOUT) std::cout << "[" << level << "] " << str << std::endl;
+    else if (type == LOG_TYPE::LOG_STDERR) std::cerr << "[" << level << "] " << str << std::endl;
 }
 
 Logger::~Logger() {

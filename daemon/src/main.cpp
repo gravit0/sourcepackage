@@ -37,15 +37,24 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
-        bool tr = false;
-        int pos = findNoSlash(cmd, splitchar, opos, &tr);
+        int pos = cmd.find(splitchar,opos);
+        bool isKav = false;
+        std::string value;
+        if(cmd[opos] == '"')
+        while(cmd[pos-1] != '"')
+        {
+            isKav = true;
+            if(pos<0) break;
+            pos = cmd.find(splitchar,pos+1);
+        }
         if (pos <= 0) {
-            std::string value = cmd.substr(opos, pos - cmd.size());
-            if (tr) SlashReplace(&value, 0);
+            if(isKav) value = cmd.substr(opos+1, cmd.size() - opos - 2);
+            else value = cmd.substr(opos, pos - cmd.size());
             list.push_back(value);
             break;
         }
-        std::string value = cmd.substr(opos, pos - opos);
+        if(isKav) value = cmd.substr(opos+1, pos - opos-2);
+        else value = cmd.substr(opos, pos - opos);
         list.push_back(value);
         opos = pos + 1;
     }
@@ -76,6 +85,7 @@ int config_parse(const std::string& filename) {
             cfg.isIgnoreLowException = (last == "true") ? true : false;
         }
     }
+    chdir(cfg.rootdir.c_str());
     return 0;
 }
 void signal_handler(int sig) {
@@ -85,9 +95,13 @@ void signal_handler(int sig) {
 }
 int main(int argc, char** argv) {
     //Package* pck = Package::get("/home/gravit/packs/ld/");
+    //std::vector<std::string> testlist = split("setconfig \"/tmp/es ss\" ah \"aaa fs\" ss ss",' ');
+    //for(auto &i : testlist)
+    //{
+    //    std::cout << i << std::endl;
+    //}
     //return 0;
     logger = new Logger(Logger::LOG_STDERR);
-    logger->logg('C',"test");
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
     int opt = getopt_long(argc, argv, getopts::optString, getopts::long_options, NULL);
