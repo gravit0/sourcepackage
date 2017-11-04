@@ -46,7 +46,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         if(isFakeInstall) flags |= Package::flag_fakeInstall;
         if(isNoDep) flags |= Package::flag_nodep;
         pck->install(flags);
-        sock->write("0 ");
+        sock->write("0");
         event.sendEvent(EventListener::EVENT_INSTALL,pck->dir + " " + (pck->isDaemon ? "d" : ""));
         } catch(package_exception err)
         {
@@ -94,7 +94,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         if (pck != nullptr) {
             pck->remove_();
             event.sendEvent(EventListener::EVENT_REMOVE,pck->dir + " " + (pck->isDaemon ? "d" : ""));
-            sock->write("0 ");
+            sock->write("0");
         } else {
             sock->write("error pkgnotfound");
         }
@@ -102,73 +102,69 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string pckdir = args[1];
         Package* t = Package::get(pckdir);
         t->toIni(pckdir);
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         Package::get(pckdir);
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "fixdir") {
         chdir("/");
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "addListen") {
         EventListener ev;
         ev.client = sock;
         ev.event = std::stoi(args[1]);
         event.addListener(ev);
-        sock->write("0 ");
+        sock->write("0");
         sock->isAutoClosable = false;
     } else if (basecmd == "freeme") {
         sock->isAutoClosable = false;
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "removeListen") {
         event.removeListener(sock);
-        sock->write("0 ");
+        sock->write("0");
         sock->isAutoClosable = true;
     } else if (basecmd == "unload") {
         std::string pckdir = args[1];
         Package* pck = Package::find(pckdir);
         delete pck;
         packs.remove(pck);
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "unloadall") {
         for (auto i = packs.begin(); i != packs.end(); ++i) {
             delete(*i);
         }
         packs.clear();
-        sock->write("0 ");
+        sock->write("0");
     } else if (basecmd == "config") {
         std::string param = args[1];
         std::string value = args[2];
         if(param == "rootdir") cfg.rootdir = value;
         else if(param == "packsdir") cfg.packsdir = value;
-        else if(param == "socket_timeout") cfg.socket_timeout = std::stoi(value);
-        sock->write("0 ");
+        else if(param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
+        sock->write("0");
     } else if (basecmd == "getpacks") {
-        std::string reply;
+        std::string reply = "0 ";
         for (auto& i : packs) {
             reply += i->name;
             reply += ":";
             if (i->isInstalled) reply += "i";
             if (i->isDependence) reply += "d";
+            if (i->isDaemon) reply += "D";
             reply += ' ';
         }
         sock->write(reply);
     } else if (basecmd == "setconfig") {
         std::string cfgdir = args[1];
-        for(auto &i : args)
-        {
-            std::cout << i << std::endl;
-        }
-        std::cerr << "New config dir " << cfgdir << std::endl;
         int result = config_parse(cfgdir);
         if (result == 1) {
             sock->write("error cfgnotfound");
         } else {
-            sock->write("0 ");
+            sock->write("0");
         }
     } else if (basecmd == "stop") {
         gsock->stop();
-        sock->write("0 ");
+        sock->write("0");
     } else
     {
         sock->write("error commandnotfound");

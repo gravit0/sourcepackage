@@ -69,6 +69,11 @@ Package* Package::get(const std::string& dir) {
         t.filename = i.first;
         files.push_back(t);
     }
+    const RecursionArray advanced = arr.get_child("advanced",RecursionArray());
+    if(!advanced.empty())
+    {
+        pack->isDaemon = advanced.get<std::string>("isDaemon", "false") == "true" ? true : false;
+    }
     std::string dep = main.get<std::string>("dependencies", "");
     if (!dep.empty()) pack->dependencies = split(dep, ':');
     pack->files = files;

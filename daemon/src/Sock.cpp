@@ -69,7 +69,7 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
     epoll_ctl(epollsock, EPOLL_CTL_ADD, sock_, &ev);
 
     while (loopEnable) {
-        int t = wait(cfg.socket_timeout);
+        int t = wait(cfg.epoll_timeout);
         if (t < 0) {
             logger->logg('C',"Error " + t);
             //loopEnable = false;
@@ -96,7 +96,7 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
                         continue;
                     }
                     rsock->buf[rsock->bytes] = 0;
-                    printf("Client sent: %s\n", rsock->buf);
+                    //printf("Client sent: %s\n", rsock->buf);
                     std::string cmd(rsock->buf, rsock->bytes);
                     lpfunc(cmd, rsock);
                     if (rsock->isAutoClosable) delete rsock;
@@ -123,7 +123,7 @@ int Sock::deattach() {
 
 int Client::write(std::string str) {
     const char* cstr = str.c_str();
-    std::cout << "Client recv: " << str << std::endl;
+    //std::cout << "Client recv: " << str << std::endl;
     return send(sock, cstr, str.size() + 1, 0);
 }
 

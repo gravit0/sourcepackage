@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(sp)
+project(spi)
 set( SOURCE_ROOT ./src )
 set (CMAKE_CXX_STANDARD 11)
 aux_source_directory( ${SOURCE_ROOT} SOURCES )

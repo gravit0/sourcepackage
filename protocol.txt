@@ -28,3 +28,5 @@ stop
 addListen [mask]
 #Выйти из режима прослушивания событий
 removeListen
+#Перейти в режим multi-command
+freeme

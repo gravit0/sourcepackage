@@ -79,6 +79,10 @@ int config_parse(const std::string& filename) {
             cfg.reinstall_socket = (last == "true") ? true : false;
         } else if (frist == "ignore_low_exception") {
             cfg.isIgnoreLowException = (last == "true") ? true : false;
+        } else if (frist == "max_connect") {
+            cfg.max_connect = i.second.get<int>("",10);
+        } else if (frist == "epoll_timeout") {
+            cfg.epoll_timeout = i.second.get<int>("",10);
         }
     }
     chdir(cfg.rootdir.c_str());

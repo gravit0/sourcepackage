@@ -115,14 +115,19 @@ int main(int argc, char ** argv) {
         add_history(input);
         send(sock, input, strlen(input), 0);
         buf[0] = '\0';
-        recv(sock, buf, sizeof (buf), 0);
+        int res = recv(sock, buf, sizeof (buf), 0);
+        if(res < 0) {
+            free(input);
+            break;
+        }
         if (buf[0] != '\0') {
             std::string cmd(buf);
             std::vector<std::string> args = split(cmd, ' ');
-            if (args[0] != "0") std::cout << cmd << std::endl;
+            if (args[0] == "0" && args.size() == 1) goto freeinput;
+            std::cout << cmd << std::endl;
         }
         /* do stuff */
-
+        freeinput:
         // Т.к. вызов readline() выделяет память, но не освобождает(а возвращает), то эту память нужно вернуть(освободить).
         free(input);
     }
