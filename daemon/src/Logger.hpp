@@ -27,6 +27,13 @@ public:
         LOG_STDERR,
         LOG_FILE
     };
+    enum class level
+    {
+        info = 1,
+        warning = 2,
+        error = 3,
+        critical = 4
+    };
     LOG_TYPE type;
     Logger(LOG_TYPE t, std::string file);
     Logger(LOG_TYPE t);

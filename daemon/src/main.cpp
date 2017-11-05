@@ -72,9 +72,14 @@ int config_parse(const std::string& filename) {
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
         else if (frist == "autoinstall") cfg.autoinstall = last;
+        else if (frist == "pidfile") cfg.pidfile = last;
         else if (frist == "daemontype") {
             if (last == "simple") cfg.daemon_type = Configuration::CFG_DAEMON_SIMPLE;
             else if (last == "forking") cfg.daemon_type = Configuration::CFG_DAEMON_FORKING;
+        } else if (frist == "setuid_mode") {
+            if (last == "suid") cfg.setuid_mode = Configuration::CFG_SETUID_SUID;
+            else if (last == "usermode") cfg.setuid_mode = Configuration::CFG_SETUID_USERMODE;
+            else if (last == "change") cfg.setuid_mode = Configuration::CFG_SETUID_CHANGE;
         } else if (frist == "reinstall_socket") {
             cfg.reinstall_socket = (last == "true") ? true : false;
         } else if (frist == "ignore_low_exception") {
@@ -94,13 +99,6 @@ void signal_handler(int sig) {
     exit(-sig);
 }
 int main(int argc, char** argv) {
-    //Package* pck = Package::get("/home/gravit/packs/ld/");
-    //std::vector<std::string> testlist = split("setconfig \"/tmp/es ss\" ah \"aaa fs\" ss ss",' ');
-    //for(auto &i : testlist)
-    //{
-    //    std::cout << i << std::endl;
-    //}
-    //return 0;
     logger = new Logger(Logger::LOG_STDERR);
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
@@ -185,15 +183,58 @@ int main(int argc, char** argv) {
             pck->install();
         }
     }
+    //Check privileges
+    {
+        cfg.security.ppid = getppid();
+        cfg.security.pid = getpid();
+        cfg.security.uid = getuid();
+        cfg.security.euid = geteuid();
+        cfg.security.gid = getgid();
+        cfg.security.egid = getegid();
+        if(cfg.setuid_mode == Configuration::CFG_SETUID_SUID)
+        {
+            if(cfg.security.uid != cfg.security.euid)
+            {
+                cfg.security.uid = cfg.security.euid;
+                setuid(cfg.security.euid);
+            }
+            else
+            {
+                logger->logg('E',"SUID mode enabled, SUID bit is not set. Please add suid bit or set config.");
+            }
+            if(cfg.security.gid != cfg.security.egid)
+            {
+                cfg.security.gid = cfg.security.egid;
+                setgid(cfg.security.egid);
+            }
+            else
+            {
+                logger->logg('E',"SUID mode enabled, SGID bit is not set. Please add sgid bit or set config.");
+            }
+        }
+        if(cfg.security.uid != 0 && (cfg.setuid_mode == Configuration::CFG_SETUID_USERMODE || cfg.setuid_mode == Configuration::CFG_SETUID_NONE))
+        {
+            logger->logg('E',"UID != 0 and usermode off");
+        }
+    }
+    ////
     if (!cfg.isDaemon) return 0;
-    
     try {
         gsock = new Sock(cfg.sockfile,cfg.max_connect+1);
         if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
-        int pid = fork();
+            int pid = fork();
             if (pid > 0) {
+                std::fstream pidfile;
+                pidfile.open(cfg.pidfile,std::ios_base::out);
+                if(pidfile) pidfile << pid;
+                else
+                {
+                    logger->logg('E',"pid file "+cfg.pidfile+" is not created");
+                }
+                pidfile.close();
                 exit(0);
             }
+            else cfg.security.pid = getpid();
         }
         gsock->loop(&cmd_exec);
     } catch (socket_exception e) {

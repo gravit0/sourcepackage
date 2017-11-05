@@ -22,6 +22,8 @@ struct FileAction {
 };
 
 class Package {
+private:
+    Package() = default;
 public:
     std::string name;
     int version_major;
@@ -36,7 +38,7 @@ public:
     bool isInstalled;
     bool isDependence;
     bool isStartInstall;
-    bool isDaemon = false;
+    bool isDaemon;
     static const unsigned int flag_fakeInstall = 1 << 0;
     static const unsigned int flag_nodep = 1 << 0;
     void install(unsigned int flags=0);
