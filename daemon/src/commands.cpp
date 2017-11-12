@@ -86,7 +86,7 @@ void cmd_exec(std::string cmd, Client* sock) {
             if(isStart) dep += ":";
             dep += i;
         }
-        sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version_major)).str()
+        sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version.major)).str()
         + " " + pck->dir + " " + pck->author + " " + dep);
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
@@ -135,6 +135,33 @@ void cmd_exec(std::string cmd, Client* sock) {
             delete(*i);
         }
         packs.clear();
+        sock->write("0");
+    } else if (basecmd == "reloadall") {
+        for (auto& i : packs) {
+            Package::read_pack(i->dir,i);
+        }
+        sock->write("0");
+    } else if (basecmd == "reload") {
+        std::string pckname = args[1];
+        Package* pck = Package::find(pckname);
+        if(pck == nullptr) {
+            sock->write("error pkgnotfound");
+            goto ifend;
+        }
+        Package::read_pack(pck->dir,pck);
+        sock->write("0");
+    } else if (basecmd == "updateall") {
+        for (auto& i : packs) {
+            Package_Version oldver = i->version;
+            i->clear();
+            Package::read_pack(i->dir,i);
+            if(i->version > oldver)
+            {
+                
+                i->isInstalled=false;
+                i->install();
+            }
+        }
         sock->write("0");
     } else if (basecmd == "config") {
         std::string param = args[1];

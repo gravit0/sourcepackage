@@ -21,19 +21,15 @@ Package* Package::unload(const std::string& name) {
 
     return nullptr;
 }
-
-Package* Package::get(const std::string& dir) {
-
+int Package::read_pack(const std::string& dir,Package* pack)
+{
     RecursionArray arr;
     try {
         boost::property_tree::ini_parser::read_ini(dir + "/package.ini", arr);
     } catch(boost::property_tree::ini_parser::ini_parser_error err)
     {
-        return nullptr;
+        return 1;
     }
-    //if(RecArrUtils::ini_parser(dir + "/package.ini",&arr) != 0) return nullptr;
-    //RecArrUtils::printTree(arr);
-    Package* pack = new Package();
     pack->isInstalled = false;
     pack->isDependence = false;
     pack->isStartInstall = false;
@@ -45,9 +41,9 @@ Package* Package::get(const std::string& dir) {
     pack->name = main.get<std::string>("name", "");
     pack->author = main.get<std::string>("author", "");
     pack->license = main.get<std::string>("license", "");
-    pack->version_major = main.get<int>("version", 1);
-    pack->version_minor = main.get<int>("version", 0);
-    pack->version_build = main.get<int>("build", 0);
+    pack->version.major = main.get<int>("version", 1);
+    pack->version.minor = main.get<int>("mversion", 0);
+    pack->version.build = main.get<int>("build", 0);
     const RecursionArray filesarr = arr.get_child("data");
     for (auto &i : filesarr) {
         const std::string value = i.second.get<std::string>("");
@@ -78,17 +74,22 @@ Package* Package::get(const std::string& dir) {
     if (!dep.empty()) pack->dependencies = split(dep, ':');
     pack->files = files;
     pack->dir = dir;
+    return 0;
+}
+Package* Package::get(const std::string& dir) 
+{
+    Package* pack = new Package();
+    if(Package::read_pack(dir,pack) != 0) return nullptr;
     packs.push_back(pack);
-
     return pack;
 }
 void Package::toIni(std::string dir)
 {
     RecursionArray arr,data,main;
     main.add("name",name);
-    main.add("version",version_major);
-    main.add("version_min",version_minor);
-    main.add("build",version_build);
+    main.add("version",version.major);
+    main.add("version_min",version.minor);
+    main.add("build",version.build);
     main.add("author",author);
     main.add("license",license);
     for(auto &i : files)
@@ -150,7 +151,7 @@ Package* Package::get_old(const std::string& dir)
                 if(pos < 0) continue;
                 std::string frist = info.substr(0,pos);
                 std::string last = info.substr(pos + 1,info.size());
-                if(frist == "version") pack->version_major = std::stoi(last);
+                if(frist == "version") pack->version.major = std::stoi(last);
                 else if(frist == "creator") pack->author = last;
                 else if(frist == "dependencies") pack->dependencies = split(last,':');
                 continue;

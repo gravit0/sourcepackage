@@ -33,6 +33,13 @@ const char* package_exception::what() const noexcept {
 package_exception::package_exception(Errors err) {
     thiserr = err;
 }
+bool Package_Version::operator >(Package_Version ver)
+{
+    if(major > ver.major) return true;
+    if(minor > ver.minor) return true;
+    if(build > ver.build) return true;
+    return false;
+}
 std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;

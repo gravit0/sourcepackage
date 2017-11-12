@@ -94,7 +94,14 @@ void Package::install(unsigned int flags) {
     isStartInstall = false;
 
 }
-
+void Package::clear()
+{
+    this->files.clear();
+    this->dependencie.clear();
+    this->dependencies.clear();
+    this->name.clear();
+    this->license.clear();
+}
 void Package::remove_() {
 
     if (!isInstalled) return;

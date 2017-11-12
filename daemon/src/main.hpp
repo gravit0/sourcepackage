@@ -20,21 +20,24 @@ struct FileAction {
     };
     ActionList action;
 };
-
+struct Package_Version {
+    int major;
+    int minor;
+    int build;
+    bool operator >(Package_Version ver);
+};
 class Package {
 private:
     Package() = default;
 public:
     std::string name;
-    int version_major;
-    int version_minor;
-    int version_build;
     std::string author;
     std::string dir;
     std::string license;
     std::vector<std::string> dependencies;
     std::list<FileAction> files;
     std::vector<Package*> dependencie;
+    Package_Version version;
     bool isInstalled;
     bool isDependence;
     bool isStartInstall;
@@ -44,8 +47,10 @@ public:
     void install(unsigned int flags=0);
     void remove_();
     void toIni(std::string dir);
+    void clear();
     static Package* find(const std::string& name);
     static Package* unload(const std::string& name);
+    static int read_pack(const std::string& dir,Package* pack);
     static Package* get(const std::string& dir);
     static Package* get_old(const std::string& dir);
     static std::mutex mutex;
