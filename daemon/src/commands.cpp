@@ -159,7 +159,7 @@ void cmd_exec(std::string cmd, Client* sock) {
             {
                 
                 i->isInstalled=false;
-                i->install();
+                i->install(Package::flag_update);
             }
         }
         sock->write("0");

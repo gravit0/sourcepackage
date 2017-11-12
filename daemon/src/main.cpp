@@ -22,24 +22,6 @@ std::list<Package*> packs;
 Configuration cfg;
 Logger * logger;
 Sock* gsock;
-const char* package_exception::what() const noexcept {
-    switch (thiserr) {
-        case DependencieNotFound: return "Dependencie Not Found";
-        case ErrorParsePackage: return "Error parse package";
-        case FileNotFound: return "File in the package was not found";
-        default: return "Unknown Error";
-    }
-}
-package_exception::package_exception(Errors err) {
-    thiserr = err;
-}
-bool Package_Version::operator >(Package_Version ver)
-{
-    if(major > ver.major) return true;
-    if(minor > ver.minor) return true;
-    if(build > ver.build) return true;
-    return false;
-}
 std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
@@ -139,7 +121,7 @@ int main(int argc, char** argv) {
                 break;
             case 'v':
             {
-                std::cout << "Source Package 1.0.0-test" << std::endl;
+                std::cout << "Source Package 1.1.0" << std::endl;
                 std::cout << "Author: Gravit" << std::endl;
                 std::cout << "Github: https://github.com/gravit0/sourcepackage" << std::endl;
                 std::cout << "This free software: you can modify and distribute it." << std::endl;

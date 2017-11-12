@@ -180,6 +180,7 @@ norecursion:
         }
         std::string info;
         RecursionArray m;
+        std::string key,value;
         while(std::getline(f,info))
         {
             if(info[0] == '#') continue;
@@ -196,8 +197,8 @@ norecursion:
             }
             int pos = info.find('=');
             if(pos<0) continue;
-            std::string key = info.substr(0,pos);
-            std::string value = info.substr(pos+1,size-pos);
+            key = info.substr(0,pos);
+            value = info.substr(pos+1,size-pos);
             m.push_back(RecursionArray::value_type(key,RecursionArray(value)));
         }
         arr->push_back(RecursionArray::value_type(category,m));

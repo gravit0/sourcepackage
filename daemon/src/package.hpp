@@ -34,6 +34,7 @@ struct Package_Version {
     int minor;
     int build;
     bool operator >(Package_Version ver);
+    int parse(std::string str);
 };
 class Package : public boost::noncopyable {
 private:
@@ -51,7 +52,8 @@ public:
     bool isDependence;
     bool isStartInstall;
     bool isDaemon;
-    static const unsigned int flag_fakeInstall = 1 << 0;
+    static const unsigned int flag_update = 1 << 2;
+    static const unsigned int flag_fakeInstall = 1 << 1;
     static const unsigned int flag_nodep = 1 << 0;
     void install(unsigned int flags=0);
     void remove();

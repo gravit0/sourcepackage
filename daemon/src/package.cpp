@@ -5,7 +5,28 @@
 #include <fstream>
 #include <iostream>
 std::mutex Package::mutex;
-
+const char* package_exception::what() const noexcept {
+    switch (thiserr) {
+        case DependencieNotFound: return "Dependencie Not Found";
+        case ErrorParsePackage: return "Error parse package";
+        case FileNotFound: return "File in the package was not found";
+        default: return "Unknown Error";
+    }
+}
+package_exception::package_exception(Errors err) {
+    thiserr = err;
+}
+bool Package_Version::operator >(Package_Version ver)
+{
+    if(major > ver.major) return true;
+    if(minor > ver.minor) return true;
+    if(build > ver.build) return true;
+    return false;
+}
+int Package_Version::parse(std::string str)
+{
+    return 0;
+}
 void Package::install(unsigned int flags) {
 
     if (isStartInstall || isInstalled) return;

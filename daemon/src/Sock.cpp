@@ -79,13 +79,13 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
             if (events[i].events & EPOLLIN) {
                 if (events[i].data.fd == sock_) {
                     int native_sock = accept(sock_, NULL, NULL);
+                    if (native_sock < 0) {
+                        throw socket_exception(socket_exception::AcceptError);
+                    }
                     static struct epoll_event ev;
                     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
                     ev.data.fd = native_sock;
                     epoll_ctl(epollsock, EPOLL_CTL_ADD, native_sock, &ev);
-                    if (native_sock < 0) {
-                        throw socket_exception(socket_exception::AcceptError);
-                    }
                     Client* rsock = new Client(native_sock);
                     smap[native_sock] = rsock;
                 } else {
@@ -99,7 +99,9 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
                     //printf("Client sent: %s\n", rsock->buf);
                     std::string cmd(rsock->buf, rsock->bytes);
                     lpfunc(cmd, rsock);
-                    if (rsock->isAutoClosable) delete rsock;
+                    if (rsock->isAutoClosable) {
+                        delete rsock;
+                    } 
                 }
             }
             if (events[i].events & EPOLLHUP)

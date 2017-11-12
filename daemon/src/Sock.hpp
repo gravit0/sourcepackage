@@ -21,16 +21,18 @@
 #include <boost/noncopyable.hpp>
 #include <sys/epoll.h>
 #include <memory>
+class Sock;
 class Client : public boost::noncopyable {
-private:
+protected:
     int sock;
+    Client(int sock);
+    friend Sock;
+    char buf[SOCK_BUF_SIZE];
+    unsigned int bytes;
 public:
     typedef std::shared_ptr<Client> ptr;
     bool isListener = false;
     bool isAutoClosable = true;
-    char buf[SOCK_BUF_SIZE];
-    unsigned int bytes;
-    Client(int sock);
     int write(std::string str);
     int read();
     virtual ~Client();
@@ -44,8 +46,8 @@ private:
     bool loopEnable;
     int epollsock;
     int max_connect;
-public:
     epoll_event* events;
+public:
     Sock(std::string filepath, int max_connect);
     void loop(void (*lpfunc)(std::string, Client*));
     int deattach();
