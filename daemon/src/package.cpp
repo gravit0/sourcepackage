@@ -102,11 +102,11 @@ void Package::clear()
     this->name.clear();
     this->license.clear();
 }
-void Package::remove_() {
+void Package::remove() {
 
     if (!isInstalled) return;
     for (auto i = files.begin(); i != files.end(); ++i) {
-        remove((cfg.rootdir + (*i).filename).c_str());
+        ::remove((cfg.rootdir + (*i).filename).c_str());
     }
     isInstalled = false;
     isDependence = false;
@@ -122,7 +122,7 @@ void Package::remove_() {
                     };
                 }
                 if (dep->dependencie.size() == 0) {
-                    dep->remove_();
+                    dep->remove();
                 }
                 //dep->dependencie.erase(std::find<std::list<Package*>::iterator,Package*>(dep->dependencie.begin(),dep->dependencie.end(),this));
             }

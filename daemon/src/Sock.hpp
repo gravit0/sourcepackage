@@ -20,10 +20,12 @@
 #include <exception>
 #include <boost/noncopyable.hpp>
 #include <sys/epoll.h>
+#include <memory>
 class Client : public boost::noncopyable {
 private:
     int sock;
 public:
+    typedef std::shared_ptr<Client> ptr;
     bool isListener = false;
     bool isAutoClosable = true;
     char buf[SOCK_BUF_SIZE];

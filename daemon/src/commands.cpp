@@ -92,7 +92,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck != nullptr) {
-            pck->remove_();
+            pck->remove();
             event.sendEvent(EventListener::EVENT_REMOVE,pck->dir + " " + (pck->isDaemon ? "d" : ""));
             sock->write("0");
         } else {
