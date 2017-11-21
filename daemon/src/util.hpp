@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   util.hpp
  * Author: gravit
  *
@@ -25,6 +25,7 @@ namespace RecArrUtils {
     std::string printTreeEx(const RecursionArray& tree, const std::string& prefix = "");
     std::string IntToByte(int integer);
     int ini_parser(std::string filename,RecursionArray* arr);
+    int ini_parser_lam(std::string filename,std::function<void (std::string key,std::string value,std::string category, bool isSetCategory)> lam);
 }
 #endif /* UTIL_HPP */
 

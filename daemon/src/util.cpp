@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   util.cpp
  * Author: gravit
  *
@@ -169,7 +169,7 @@ norecursion:
         }
         return arr;
     }
-    
+
     int ini_parser(std::string filename,RecursionArray* arr)
     {
         std::string category;
@@ -202,6 +202,43 @@ norecursion:
             m.push_back(RecursionArray::value_type(key,RecursionArray(value)));
         }
         arr->push_back(RecursionArray::value_type(category,m));
+        return 0;
+    }
+    int ini_parser_lam(std::string filename,std::function<void (std::string key,std::string value,std::string category, bool isSetCategory)> lam)
+    {
+        std::string category;
+        std::fstream f(filename,std::ios_base::in);
+        if(!f)
+        {
+            return -1;
+        }
+        std::string info;
+        RecursionArray m;
+        std::string key,value;
+        bool isSetDirectory = false;
+        while(std::getline(f,info))
+        {
+            const char* c_str = info.c_str();
+            if(info[0] == '#') continue;
+            int size = info.size();
+            if(size == 0) continue;
+            if(info[0] == '[')
+            {
+                isSetDirectory = true;
+                if(!category.empty())
+                {
+                    m.clear();
+                }
+                category = std::string(c_str+1,size - 2);
+                continue;
+            }
+            int pos = info.find('=');
+            if(pos<0) continue;
+            key = std::string(c_str,pos);
+            value = std::string(c_str+pos+1,size-pos);
+            lam(key,value,category,isSetDirectory);
+            isSetDirectory = false;
+        }
         return 0;
     }
 }

@@ -88,6 +88,10 @@ void signal_handler(int sig) {
     exit(-sig);
 }
 int main(int argc, char** argv) {
+    //RecArrUtils::ini_parser_lam("/home/gravit/test3.cfg",[](std::string key,std::string value,std::string category,bool isSet){
+    //                                std::cout << key << " " << value << " " << category << " " << isSet << std::endl ;
+    //                            });
+    //return 0;
     logger = new Logger(Logger::LOG_STDERR);
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
