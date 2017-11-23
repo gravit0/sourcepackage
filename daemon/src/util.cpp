@@ -207,7 +207,6 @@ norecursion:
             return -1;
         }
         std::string info;
-        RecursionArray m;
         std::string key, value;
         bool isSetDirectory = false;
         while (std::getline(f, info)) {
@@ -217,9 +216,6 @@ norecursion:
             if (size == 0) continue;
             if (info[0] == '[') {
                 isSetDirectory = true;
-                if (!category.empty()) {
-                    m.clear();
-                }
                 category = std::string(c_str + 1, size - 2);
                 continue;
             }

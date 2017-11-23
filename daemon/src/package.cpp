@@ -53,34 +53,37 @@ void Package::install(unsigned int flags) {
         for (auto& i : files) {
             std::string filename = i.filename;
             std::string pckfile = (dir + filename);
+            const char* pckfile_c = pckfile.c_str();
+            std::string targetfile = (cfg.rootdir + filename);
+            const char* targetfile_c = targetfile.c_str();
             struct stat statbuff;
-            if (lstat(pckfile.c_str(), &statbuff) < 0) {
+            if (lstat(pckfile_c, &statbuff) < 0) {
                 if (!cfg.isIgnoreLowException) throw package_exception(package_exception::FileNotFound);
                 continue;
             }
             auto filemode = statbuff.st_mode;
             if (i.mode >= 0) filemode = i.mode;
-            if (i.action == FileAction::LINK) symlink(pckfile.c_str(), (cfg.rootdir + filename).c_str());
+            if (i.action == FileAction::LINK) symlink(pckfile_c, targetfile_c);
             else if (i.action == FileAction::DIR) {
-                mkdir((cfg.rootdir + filename).c_str(), filemode);
+                mkdir(targetfile_c, filemode);
                 auto uid = statbuff.st_uid;
                 auto gid = statbuff.st_gid;
                 if (i.owner >= 0) uid = i.owner;
                 if (i.group >= 0) gid = i.group;
-                if (i.owner >= 0 || i.group > 0) chown((cfg.rootdir + filename).c_str(), uid, gid);
+                if (i.owner >= 0 || i.group > 0) chown(targetfile_c, uid, gid);
             } else if (i.action == FileAction::FILE) {
                 if (S_ISLNK(statbuff.st_mode)) {
-                    char lbuff[1024];
+                    char lbuff[SYMLINK_BUF_SIZE];
                     int len;
-                    if ((len = readlink((dir + filename).c_str(), lbuff, sizeof (lbuff) - 1)) != -1) {
+                    if ((len = readlink(pckfile_c, lbuff, sizeof (lbuff) - 1)) != -1) {
                         lbuff[len] = '\0';
-                        symlink(lbuff, (cfg.rootdir + filename).c_str());
+                        symlink(lbuff, targetfile_c);
                     }
                     continue;
                 }
                 std::string buf;
-                std::fstream f(dir + filename, std::ios_base::in | std::ios_base::binary);
-                std::fstream f2(cfg.rootdir + filename, std::ios_base::out | std::ios_base::binary);
+                std::fstream f(pckfile, std::ios_base::in | std::ios_base::binary);
+                std::fstream f2(targetfile, std::ios_base::out | std::ios_base::binary);
                 if (f) {
                     // get length of file:
                     f.seekg(0, f.end);
@@ -91,26 +94,24 @@ void Package::install(unsigned int flags) {
 
                     char * buffer = new char [buflength];
                     while (length > 0) {
-                        // read data as a block:
                         if (length < COPY_BUF_SIZE) buflength = length;
                         f.read(buffer, buflength);
                         if (f)
                             f2.write(buffer, buflength);
                         else
                             std::cout << "error: only " << f.gcount() << " could be read";
-                        // ...buffer contains the entire file...
                         length = length - buflength;
                     }
                     delete[] buffer;
                 }
                 f.close();
                 f2.close();
-                chmod((cfg.rootdir + filename).c_str(), filemode);
+                chmod(targetfile_c, filemode);
                 auto uid = statbuff.st_uid;
                 auto gid = statbuff.st_gid;
                 if (i.owner >= 0) uid = i.owner;
                 if (i.group >= 0) gid = i.group;
-                if (i.owner >= 0 || i.group > 0) chown((cfg.rootdir + filename).c_str(), uid, gid);
+                chown(targetfile_c, uid, gid);
             }
         }
     isInstalled = true;

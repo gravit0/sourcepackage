@@ -66,7 +66,6 @@ public:
     static Package* unload(const std::string& name);
     static int read_pack(const std::string& dir, Package* pack);
     static Package* get(const std::string& dir);
-    static Package* get_old(const std::string& dir);
     static std::mutex mutex;
 };
 

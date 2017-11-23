@@ -5,7 +5,7 @@
 #include "Logger.hpp"
 #define COPY_BUF_SIZE 131072
 #define SOCK_BUF_SIZE 1024
-
+#define SYMLINK_BUF_SIZE 256
 struct _SecurityInfo {
     int pid;
     int ppid;

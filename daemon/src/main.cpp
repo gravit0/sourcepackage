@@ -52,12 +52,7 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
 
 int config_parse(const std::string& filename) {
 
-    RecursionArray acfg;
-    boost::property_tree::ini_parser::read_ini(filename, acfg);
-    RecursionArray maincfg = acfg.get_child("main");
-    for (auto& i : maincfg) {
-        std::string frist = i.first;
-        std::string last = i.second.get<std::string>("");
+    auto lam = [](std::string frist,std::string last,std::string category,bool isSet) {
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
@@ -75,11 +70,12 @@ int config_parse(const std::string& filename) {
         } else if (frist == "ignore_low_exception") {
             cfg.isIgnoreLowException = (last == "true") ? true : false;
         } else if (frist == "max_connect") {
-            cfg.max_connect = i.second.get<int>("", 10);
+            cfg.max_connect = std::stoi(last);
         } else if (frist == "epoll_timeout") {
-            cfg.epoll_timeout = i.second.get<int>("", 10);
+            cfg.epoll_timeout = std::stoi(last);
         }
-    }
+    };
+    RecArrUtils::ini_parser_lam(filename,lam);
     chdir(cfg.rootdir.c_str());
     return 0;
 }

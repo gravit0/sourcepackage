@@ -95,11 +95,6 @@ void cmd_exec(std::string cmd, Client* sock) {
         } else {
             sock->write("error pkgnotfound");
         }
-    } else if (basecmd == "transform") {
-        std::string pckdir = args[1];
-        Package* t = Package::get(pckdir);
-        t->toIni(pckdir);
-        sock->write("0");
     } else if (basecmd == "load") {
         std::string pckdir = args[1];
         Package::get(pckdir);
