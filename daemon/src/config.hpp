@@ -5,13 +5,14 @@
 #include "Logger.hpp"
 #define COPY_BUF_SIZE 131072
 #define SOCK_BUF_SIZE 1024
-struct _SecurityInfo
-{
+
+struct _SecurityInfo {
     int pid;
     int ppid;
-    int uid,euid;
-    int gid,egid;
+    int uid, euid;
+    int gid, egid;
 };
+
 struct Configuration {
     std::string rootdir = "/";
     std::string packsdir = "/";
@@ -22,10 +23,12 @@ struct Configuration {
     int epoll_timeout = 1000;
     int max_connect = 10;
     Logger::level log_level;
+
     enum DAEMON_TYPE {
         CFG_DAEMON_SIMPLE,
         CFG_DAEMON_FORKING
     };
+
     enum SETUID_MODES {
         CFG_SETUID_NONE,
         CFG_SETUID_SUID,

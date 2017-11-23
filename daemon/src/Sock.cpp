@@ -24,6 +24,7 @@
 #include <map>
 #include "EventManager.hpp"
 #include "Logger.hpp"
+
 Sock::Sock(std::string filepath, int max_connect) {
     this->max_connect = max_connect;
     epollsock = epoll_create(max_connect);
@@ -36,10 +37,10 @@ Sock::Sock(std::string filepath, int max_connect) {
     srvr_name.sun_family = AF_UNIX;
     filename_c = filepath.c_str();
     strcpy(srvr_name.sun_path, filename_c);
-    if (bind(sock_, (sockaddr*) &srvr_name, sizeof(srvr_name)) < 0) {
+    if (bind(sock_, (sockaddr*) & srvr_name, sizeof (srvr_name)) < 0) {
         throw socket_exception(socket_exception::BindError);
     }
-    listen(sock_, max_connect-1);
+    listen(sock_, max_connect - 1);
 }
 
 socket_exception::socket_exception(Errors err) {
@@ -71,7 +72,7 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
     while (loopEnable) {
         int t = wait(cfg.epoll_timeout);
         if (t < 0) {
-            logger->logg('C',"Error " + t);
+            logger->logg('C', "Error " + t);
             //loopEnable = false;
             continue;
         }
@@ -101,11 +102,10 @@ void Sock::loop(void (*lpfunc)(std::string, Client*)) {
                     lpfunc(cmd, rsock);
                     if (rsock->isAutoClosable) {
                         delete rsock;
-                    } 
+                    }
                 }
             }
-            if (events[i].events & EPOLLHUP)
-            {
+            if (events[i].events & EPOLLHUP) {
                 delete smap[events[i].data.fd];
                 smap.erase(events[i].data.fd);
             }
@@ -136,7 +136,7 @@ int Client::read() {
 
 Client::~Client() {
     close(sock);
-    if(isListener) event.removeListener(this);
+    if (isListener) event.removeListener(this);
 }
 
 void Sock::stop() {

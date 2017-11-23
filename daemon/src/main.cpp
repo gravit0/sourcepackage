@@ -22,33 +22,34 @@ std::list<Package*> packs;
 Configuration cfg;
 Logger * logger;
 Sock* gsock;
+
 std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
     while (true) {
-        int pos = cmd.find(splitchar,opos);
+        int pos = cmd.find(splitchar, opos);
         bool isKav = false;
         std::string value;
-        if(cmd[opos] == '"')
-        while(cmd[pos-1] != '"')
-        {
-            isKav = true;
-            if(pos<0) break;
-            pos = cmd.find(splitchar,pos+1);
-        }
+        if (cmd[opos] == '"')
+            while (cmd[pos - 1] != '"') {
+                isKav = true;
+                if (pos < 0) break;
+                pos = cmd.find(splitchar, pos + 1);
+            }
         if (pos <= 0) {
-            if(isKav) value = cmd.substr(opos+1, cmd.size() - opos - 2);
+            if (isKav) value = cmd.substr(opos + 1, cmd.size() - opos - 2);
             else value = cmd.substr(opos, pos - cmd.size());
             list.push_back(value);
             break;
         }
-        if(isKav) value = cmd.substr(opos+1, pos - opos-2);
+        if (isKav) value = cmd.substr(opos + 1, pos - opos - 2);
         else value = cmd.substr(opos, pos - opos);
         list.push_back(value);
         opos = pos + 1;
     }
     return list;
 }
+
 int config_parse(const std::string& filename) {
 
     RecursionArray acfg;
@@ -74,19 +75,21 @@ int config_parse(const std::string& filename) {
         } else if (frist == "ignore_low_exception") {
             cfg.isIgnoreLowException = (last == "true") ? true : false;
         } else if (frist == "max_connect") {
-            cfg.max_connect = i.second.get<int>("",10);
+            cfg.max_connect = i.second.get<int>("", 10);
         } else if (frist == "epoll_timeout") {
-            cfg.epoll_timeout = i.second.get<int>("",10);
+            cfg.epoll_timeout = i.second.get<int>("", 10);
         }
     }
     chdir(cfg.rootdir.c_str());
     return 0;
 }
+
 void signal_handler(int sig) {
     if (gsock != nullptr) delete gsock;
     if (sig == SIGTERM) exit(0);
     exit(-sig);
 }
+
 int main(int argc, char** argv) {
     //RecArrUtils::ini_parser_lam("/home/gravit/test3.cfg",[](std::string key,std::string value,std::string category,bool isSet){
     //                                std::cout << key << " " << value << " " << category << " " << isSet << std::endl ;
@@ -160,8 +163,8 @@ int main(int argc, char** argv) {
     }
     if (cfg.isAllowWarning) {
         struct stat statbuff;
-        if (stat(cfg.rootdir.c_str(), &statbuff) != 0) logger->logg('W',"rootdir " + cfg.rootdir + " not found");
-        if (stat(cfg.packsdir.c_str(), &statbuff) != 0) logger->logg('W',"packsdir " + cfg.packsdir + " not found");
+        if (stat(cfg.rootdir.c_str(), &statbuff) != 0) logger->logg('W', "rootdir " + cfg.rootdir + " not found");
+        if (stat(cfg.packsdir.c_str(), &statbuff) != 0) logger->logg('W', "packsdir " + cfg.packsdir + " not found");
     }
     if (cfg.isAutoinstall) {
         auto list = split(cfg.autoinstall, ':');
@@ -170,7 +173,7 @@ int main(int argc, char** argv) {
             Package* pck = Package::find(pckname);
             if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr) {
-                logger->logg('E',"package " + pckname + " not found");
+                logger->logg('E', "package " + pckname + " not found");
                 continue;
             }
             pck->install();
@@ -184,54 +187,44 @@ int main(int argc, char** argv) {
         cfg.security.euid = geteuid();
         cfg.security.gid = getgid();
         cfg.security.egid = getegid();
-        if(cfg.setuid_mode == Configuration::CFG_SETUID_SUID)
-        {
-            if(cfg.security.uid != cfg.security.euid)
-            {
+        if (cfg.setuid_mode == Configuration::CFG_SETUID_SUID) {
+            if (cfg.security.uid != cfg.security.euid) {
                 cfg.security.uid = cfg.security.euid;
                 setuid(cfg.security.euid);
+            } else {
+                logger->logg('E', "SUID mode enabled, SUID bit is not set. Please add suid bit or set config.");
             }
-            else
-            {
-                logger->logg('E',"SUID mode enabled, SUID bit is not set. Please add suid bit or set config.");
-            }
-            if(cfg.security.gid != cfg.security.egid)
-            {
+            if (cfg.security.gid != cfg.security.egid) {
                 cfg.security.gid = cfg.security.egid;
                 setgid(cfg.security.egid);
-            }
-            else
-            {
-                logger->logg('E',"SUID mode enabled, SGID bit is not set. Please add sgid bit or set config.");
+            } else {
+                logger->logg('E', "SUID mode enabled, SGID bit is not set. Please add sgid bit or set config.");
             }
         }
-        if(cfg.security.uid != 0 && (cfg.setuid_mode == Configuration::CFG_SETUID_USERMODE || cfg.setuid_mode == Configuration::CFG_SETUID_NONE))
-        {
-            logger->logg('E',"UID != 0 and usermode off");
+        if (cfg.security.uid != 0 && (cfg.setuid_mode == Configuration::CFG_SETUID_USERMODE || cfg.setuid_mode == Configuration::CFG_SETUID_NONE)) {
+            logger->logg('E', "UID != 0 and usermode off");
         }
     }
     ////
     if (!cfg.isDaemon) return 0;
     try {
-        gsock = new Sock(cfg.sockfile,cfg.max_connect+1);
+        gsock = new Sock(cfg.sockfile, cfg.max_connect + 1);
         if (cfg.daemon_type == Configuration::CFG_DAEMON_FORKING && !(getopts::longopts.isNoForking == 1)) {
             int pid = fork();
             if (pid > 0) {
                 std::fstream pidfile;
-                pidfile.open(cfg.pidfile,std::ios_base::out);
-                if(pidfile) pidfile << pid;
-                else
-                {
-                    logger->logg('E',"pid file "+cfg.pidfile+" is not created");
+                pidfile.open(cfg.pidfile, std::ios_base::out);
+                if (pidfile) pidfile << pid;
+                else {
+                    logger->logg('E', "pid file " + cfg.pidfile + " is not created");
                 }
                 pidfile.close();
                 exit(0);
-            }
-            else cfg.security.pid = getpid();
+            } else cfg.security.pid = getpid();
         }
         gsock->loop(&cmd_exec);
     } catch (socket_exception e) {
-        logger->logg('C',"An exception was thrown out. Information: " + std::string(e.what()));
+        logger->logg('C', "An exception was thrown out. Information: " + std::string(e.what()));
         perror("[C] Failed reason:");
         exit(-1);
     }

@@ -27,8 +27,8 @@ public:
         LOG_STDERR,
         LOG_FILE
     };
-    enum class level
-    {
+
+    enum class level {
         info = 1,
         warning = 2,
         error = 3,

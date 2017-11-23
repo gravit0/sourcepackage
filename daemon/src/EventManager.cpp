@@ -14,36 +14,32 @@
 #include "EventManager.hpp"
 #include <sstream>
 EventManager event;
+
 EventManager::EventManager() {
 }
 
 EventManager::~EventManager() {
 }
-std::map<int,char> EventManager::eventmap{
-    {EventListener::EVENT_INSTALL,'i'},
-    {EventListener::EVENT_REMOVE,'r'}
-};
-void EventManager::addListener(EventListener ev)
-{
+std::map<int, char> EventManager::eventmap{
+    {EventListener::EVENT_INSTALL, 'i'},
+    {EventListener::EVENT_REMOVE, 'r'}};
+
+void EventManager::addListener(EventListener ev) {
     ev.client->isListener = true;
     list.push_back(ev);
 }
-void EventManager::sendEvent(int event, std::string data)
-{
-    for(auto &i : list)
-    {
-        if(i.event & event)
-        {
+
+void EventManager::sendEvent(int event, std::string data) {
+    for (auto &i : list) {
+        if (i.event & event) {
             i.client->write("event " + ((std::ostringstream&)(std::ostringstream() << event)).str() + data);
         }
     }
 }
-void EventManager::removeListener(Client* client)
-{
-    for(auto i = list.begin();i!=list.end();++i)
-    {
-        if((*i).client == client)
-        {
+
+void EventManager::removeListener(Client* client) {
+    for (auto i = list.begin(); i != list.end(); ++i) {
+        if ((*i).client == client) {
             list.erase(i);
         }
     }

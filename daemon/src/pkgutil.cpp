@@ -21,13 +21,12 @@ Package* Package::unload(const std::string& name) {
 
     return nullptr;
 }
-int Package::read_pack(const std::string& dir,Package* pack)
-{
+
+int Package::read_pack(const std::string& dir, Package* pack) {
     RecursionArray arr;
     try {
         boost::property_tree::ini_parser::read_ini(dir + "/package.ini", arr);
-    } catch(boost::property_tree::ini_parser::ini_parser_error err)
-    {
+    } catch (boost::property_tree::ini_parser::ini_parser_error err) {
         return 1;
     }
     pack->isInstalled = false;
@@ -65,9 +64,8 @@ int Package::read_pack(const std::string& dir,Package* pack)
         t.filename = i.first;
         files.push_back(t);
     }
-    const RecursionArray advanced = arr.get_child("advanced",RecursionArray());
-    if(!advanced.empty())
-    {
+    const RecursionArray advanced = arr.get_child("advanced", RecursionArray());
+    if (!advanced.empty()) {
         pack->isDaemon = advanced.get<std::string>("isDaemon", "false") == "true" ? true : false;
     }
     std::string dep = main.get<std::string>("dependencies", "");
@@ -76,56 +74,52 @@ int Package::read_pack(const std::string& dir,Package* pack)
     pack->dir = dir;
     return 0;
 }
-Package* Package::get(const std::string& dir) 
-{
+
+Package* Package::get(const std::string& dir) {
     Package* pack = new Package();
-    if(Package::read_pack(dir,pack) != 0) return nullptr;
+    if (Package::read_pack(dir, pack) != 0) return nullptr;
     packs.push_back(pack);
     return pack;
 }
-void Package::toIni(std::string dir)
-{
-    RecursionArray arr,data,main;
-    main.add("name",name);
-    main.add("version",version.major);
-    main.add("version_min",version.minor);
-    main.add("build",version.build);
-    main.add("author",author);
-    main.add("license",license);
-    for(auto &i : files)
-    {
+
+void Package::toIni(std::string dir) {
+    RecursionArray arr, data, main;
+    main.add("name", name);
+    main.add("version", version.major);
+    main.add("version_min", version.minor);
+    main.add("build", version.build);
+    main.add("author", author);
+    main.add("license", license);
+    for (auto &i : files) {
         std::string value;
-        if(i.action == FileAction::FILE) value  += "f";
-        else if(i.action == FileAction::DIR) value  += "d";
-        else if(i.action == FileAction::LINK) value  += "l";
-        if(i.mode >=0)
-        {
+        if (i.action == FileAction::FILE) value += "f";
+        else if (i.action == FileAction::DIR) value += "d";
+        else if (i.action == FileAction::LINK) value += "l";
+        if (i.mode >= 0) {
             value += ":";
             value += i.mode;
         }
-        data.push_back(RecursionArray::value_type(i.filename,RecursionArray(value)));
+        data.push_back(RecursionArray::value_type(i.filename, RecursionArray(value)));
     }
     std::string dep;
     {
         bool isStart = false;
-        for(auto &i : dependencies)
-        {
-            if(isStart) dep += ":";
+        for (auto &i : dependencies) {
+            if (isStart) dep += ":";
             dep += i;
             isStart = true;
         }
     }
-    main.add("dependencies",dep);
-    arr.add_child("main",main);
-    arr.add_child("data",data);
-    boost::property_tree::ini_parser::write_ini(dir + "/package.ini",arr);
+    main.add("dependencies", dep);
+    arr.add_child("main", main);
+    arr.add_child("data", data);
+    boost::property_tree::ini_parser::write_ini(dir + "/package.ini", arr);
 }
-Package* Package::get_old(const std::string& dir)
-{
+
+Package* Package::get_old(const std::string& dir) {
     std::fstream f;
-    f.open(dir + "/config.cfg",std::ios_base::in);
-    if(!f.fail())
-    {
+    f.open(dir + "/config.cfg", std::ios_base::in);
+    if (!f.fail()) {
         Package* pack = new Package();
         pack->isInstalled = false;
         pack->isDependence = false;
@@ -135,32 +129,33 @@ Package* Package::get_old(const std::string& dir)
         std::string category;
         std::string name;
         int state = 0;
-        while(std::getline(f,info))
-        {
-            if(info.size()<=1) continue;
-            if(info[0] == '[')
-            {
-                if(state == 0) {
-                    name=info.substr(1,info.size() - 2);
-                    state = 1; }
-                else { category=info.substr(1,info.size() - 2);  state = 2;}
+        while (std::getline(f, info)) {
+            if (info.size() <= 1) continue;
+            if (info[0] == '[') {
+                if (state == 0) {
+                    name = info.substr(1, info.size() - 2);
+                    state = 1;
+                } else {
+                    category = info.substr(1, info.size() - 2);
+                    state = 2;
+                }
                 continue;
             }
-            if(state == 1) {
+            if (state == 1) {
                 int pos = info.find('=');
-                if(pos < 0) continue;
-                std::string frist = info.substr(0,pos);
-                std::string last = info.substr(pos + 1,info.size());
-                if(frist == "version") pack->version.major = std::stoi(last);
-                else if(frist == "creator") pack->author = last;
-                else if(frist == "dependencies") pack->dependencies = split(last,':');
+                if (pos < 0) continue;
+                std::string frist = info.substr(0, pos);
+                std::string last = info.substr(pos + 1, info.size());
+                if (frist == "version") pack->version.major = std::stoi(last);
+                else if (frist == "creator") pack->author = last;
+                else if (frist == "dependencies") pack->dependencies = split(last, ':');
                 continue;
             }
-            if(state == 2) {
+            if (state == 2) {
                 FileAction t;
-                if(category == "cp") t.action = FileAction::FILE;
-                else if(category == "ln") t.action = FileAction::LINK;
-                else if(category == "dir") t.action = FileAction::DIR;
+                if (category == "cp") t.action = FileAction::FILE;
+                else if (category == "ln") t.action = FileAction::LINK;
+                else if (category == "dir") t.action = FileAction::DIR;
                 t.filename = info;
                 files.push_back(t);
             }

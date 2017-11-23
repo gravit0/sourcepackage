@@ -170,73 +170,64 @@ norecursion:
         return arr;
     }
 
-    int ini_parser(std::string filename,RecursionArray* arr)
-    {
+    int ini_parser(std::string filename, RecursionArray* arr) {
         std::string category;
-        std::fstream f(filename,std::ios_base::in);
-        if(!f)
-        {
+        std::fstream f(filename, std::ios_base::in);
+        if (!f) {
             return -1;
         }
         std::string info;
         RecursionArray m;
-        std::string key,value;
-        while(std::getline(f,info))
-        {
-            if(info[0] == '#') continue;
+        std::string key, value;
+        while (std::getline(f, info)) {
+            if (info[0] == '#') continue;
             int size = info.size();
-            if(info[0] == '[')
-            {
-                if(!category.empty())
-                {
-                    arr->push_back(RecursionArray::value_type(category,m));
+            if (info[0] == '[') {
+                if (!category.empty()) {
+                    arr->push_back(RecursionArray::value_type(category, m));
                     m.clear();
                 }
-                category = info.substr(1,size - 2);
+                category = info.substr(1, size - 2);
                 continue;
             }
             int pos = info.find('=');
-            if(pos<0) continue;
-            key = info.substr(0,pos);
-            value = info.substr(pos+1,size-pos);
-            m.push_back(RecursionArray::value_type(key,RecursionArray(value)));
+            if (pos < 0) continue;
+            key = info.substr(0, pos);
+            value = info.substr(pos + 1, size - pos);
+            m.push_back(RecursionArray::value_type(key, RecursionArray(value)));
         }
-        arr->push_back(RecursionArray::value_type(category,m));
+        arr->push_back(RecursionArray::value_type(category, m));
         return 0;
     }
-    int ini_parser_lam(std::string filename,std::function<void (std::string key,std::string value,std::string category, bool isSetCategory)> lam)
-    {
+
+    int ini_parser_lam(std::string filename, std::function<void (std::string key, std::string value, std::string category, bool isSetCategory) > lam) {
         std::string category;
-        std::fstream f(filename,std::ios_base::in);
-        if(!f)
-        {
+        std::fstream f(filename, std::ios_base::in);
+        if (!f) {
             return -1;
         }
         std::string info;
         RecursionArray m;
-        std::string key,value;
+        std::string key, value;
         bool isSetDirectory = false;
-        while(std::getline(f,info))
-        {
+        while (std::getline(f, info)) {
             const char* c_str = info.c_str();
-            if(info[0] == '#') continue;
+            if (info[0] == '#') continue;
             int size = info.size();
-            if(size == 0) continue;
-            if(info[0] == '[')
-            {
+            if (size == 0) continue;
+            if (info[0] == '[') {
                 isSetDirectory = true;
-                if(!category.empty())
-                {
+                if (!category.empty()) {
                     m.clear();
                 }
-                category = std::string(c_str+1,size - 2);
+                category = std::string(c_str + 1, size - 2);
                 continue;
             }
             int pos = info.find('=');
-            if(pos<0) continue;
-            key = std::string(c_str,pos);
-            value = std::string(c_str+pos+1,size-pos);
-            lam(key,value,category,isSetDirectory);
+            if (pos < 0) continue;
+            key = std::string(c_str, pos);
+            value = std::string(c_str + pos + 1, size - pos);
+            lam(key, value, category, isSetDirectory);
             isSetDirectory = false;
         }
         return 0;

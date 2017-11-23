@@ -15,44 +15,42 @@
 #include <sstream>
 #include <iostream>
 #include <sys/stat.h>
+
 void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
     if (basecmd == "install") {
         std::string pckname = args[1];
         try {
-        Package* pck = Package::find(pckname);
-        bool isFakeInstall = false;
-        bool isNoDep = false;
-        bool isFullPath = false;
-        unsigned int flags = 0;
-        if(args.size() > 2)
-        {
-            for( auto &i : args[2])
-            {
-                if(i == 'f') isFakeInstall = true;
-                else if(i == 'u') isFullPath = true;
-                else if(i == 'd') isNoDep = true;
+            Package* pck = Package::find(pckname);
+            bool isFakeInstall = false;
+            bool isNoDep = false;
+            bool isFullPath = false;
+            unsigned int flags = 0;
+            if (args.size() > 2) {
+                for (auto &i : args[2]) {
+                    if (i == 'f') isFakeInstall = true;
+                    else if (i == 'u') isFullPath = true;
+                    else if (i == 'd') isNoDep = true;
+                }
             }
-        }
-        if (pck == nullptr) {
-            if(isFullPath) Package::get(pckname);
-            else pck = Package::get(cfg.packsdir + pckname);
-        }
-        if (pck == nullptr) {
-            sock->write("error pkgnotfound");
-            goto ifend;
-        }
-        if(isFakeInstall) flags |= Package::flag_fakeInstall;
-        if(isNoDep) flags |= Package::flag_nodep;
-        pck->install(flags);
-        sock->write("0");
-        event.sendEvent(EventListener::EVENT_INSTALL,pck->dir + " " + (pck->isDaemon ? "d" : ""));
-        } catch(package_exception err)
-        {
-            if(err.thiserr == package_exception::DependencieNotFound) sock->write("error depnotfound");
-            else if(err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
-            else if(err.thiserr == package_exception::FileNotFound) sock->write("error pkgfilenotfound");
+            if (pck == nullptr) {
+                if (isFullPath) Package::get(pckname);
+                else pck = Package::get(cfg.packsdir + pckname);
+            }
+            if (pck == nullptr) {
+                sock->write("error pkgnotfound");
+                goto ifend;
+            }
+            if (isFakeInstall) flags |= Package::flag_fakeInstall;
+            if (isNoDep) flags |= Package::flag_nodep;
+            pck->install(flags);
+            sock->write("0");
+            event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));
+        } catch (package_exception err) {
+            if (err.thiserr == package_exception::DependencieNotFound) sock->write("error depnotfound");
+            else if (err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
+            else if (err.thiserr == package_exception::FileNotFound) sock->write("error pkgfilenotfound");
         }
     } else if (basecmd == "findfile") {
         std::string filename = args[1];
@@ -75,25 +73,24 @@ void cmd_exec(std::string cmd, Client* sock) {
     } else if (basecmd == "packinfo") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
-        if(pck == nullptr) {
+        if (pck == nullptr) {
             sock->write("error pkgnotfound");
             goto ifend;
         }
         std::string dep;
         bool isStart = false;
-        for(auto &i : pck->dependencies)
-        {
-            if(isStart) dep += ":";
+        for (auto &i : pck->dependencies) {
+            if (isStart) dep += ":";
             dep += i;
         }
         sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version.major)).str()
-        + " " + pck->dir + " " + pck->author + " " + dep);
+                + " " + pck->dir + " " + pck->author + " " + dep);
     } else if (basecmd == "remove") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck != nullptr) {
             pck->remove();
-            event.sendEvent(EventListener::EVENT_REMOVE,pck->dir + " " + (pck->isDaemon ? "d" : ""));
+            event.sendEvent(EventListener::EVENT_REMOVE, pck->dir + " " + (pck->isDaemon ? "d" : ""));
             sock->write("0");
         } else {
             sock->write("error pkgnotfound");
@@ -138,27 +135,26 @@ void cmd_exec(std::string cmd, Client* sock) {
         sock->write("0");
     } else if (basecmd == "reloadall") {
         for (auto& i : packs) {
-            Package::read_pack(i->dir,i);
+            Package::read_pack(i->dir, i);
         }
         sock->write("0");
     } else if (basecmd == "reload") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
-        if(pck == nullptr) {
+        if (pck == nullptr) {
             sock->write("error pkgnotfound");
             goto ifend;
         }
-        Package::read_pack(pck->dir,pck);
+        Package::read_pack(pck->dir, pck);
         sock->write("0");
     } else if (basecmd == "updateall") {
         for (auto& i : packs) {
             Package_Version oldver = i->version;
             i->clear();
-            Package::read_pack(i->dir,i);
-            if(i->version > oldver)
-            {
-                
-                i->isInstalled=false;
+            Package::read_pack(i->dir, i);
+            if (i->version > oldver) {
+
+                i->isInstalled = false;
                 i->install(Package::flag_update);
             }
         }
@@ -166,9 +162,9 @@ void cmd_exec(std::string cmd, Client* sock) {
     } else if (basecmd == "config") {
         std::string param = args[1];
         std::string value = args[2];
-        if(param == "rootdir") cfg.rootdir = value;
-        else if(param == "packsdir") cfg.packsdir = value;
-        else if(param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
+        if (param == "rootdir") cfg.rootdir = value;
+        else if (param == "packsdir") cfg.packsdir = value;
+        else if (param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
         sock->write("0");
     } else if (basecmd == "getpacks") {
         std::string reply = "0 ";
@@ -192,8 +188,7 @@ void cmd_exec(std::string cmd, Client* sock) {
     } else if (basecmd == "stop") {
         gsock->stop();
         sock->write("0");
-    } else
-    {
+    } else {
         sock->write("error commandnotfound");
     }
 ifend:

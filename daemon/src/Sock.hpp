@@ -22,6 +22,7 @@
 #include <sys/epoll.h>
 #include <memory>
 class Sock;
+
 class Client : public boost::noncopyable {
 protected:
     int sock;

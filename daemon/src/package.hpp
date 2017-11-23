@@ -16,6 +16,7 @@
 #include <string>
 #include <list>
 #include <exception>
+
 struct FileAction {
     std::string filename;
     int mode;
@@ -29,13 +30,15 @@ struct FileAction {
     };
     ActionList action;
 };
+
 struct Package_Version {
     int major;
     int minor;
     int build;
-    bool operator >(Package_Version ver);
+    bool operator>(Package_Version ver);
     int parse(std::string str);
 };
+
 class Package : public boost::noncopyable {
 private:
     Package() = default;
@@ -55,19 +58,21 @@ public:
     static const unsigned int flag_update = 1 << 2;
     static const unsigned int flag_fakeInstall = 1 << 1;
     static const unsigned int flag_nodep = 1 << 0;
-    void install(unsigned int flags=0);
+    void install(unsigned int flags = 0);
     void remove();
     void toIni(std::string dir);
     void clear();
     static Package* find(const std::string& name);
     static Package* unload(const std::string& name);
-    static int read_pack(const std::string& dir,Package* pack);
+    static int read_pack(const std::string& dir, Package* pack);
     static Package* get(const std::string& dir);
     static Package* get_old(const std::string& dir);
     static std::mutex mutex;
 };
+
 class package_exception : public std::exception {
 public:
+
     enum Errors {
         DependencieNotFound,
         ErrorParsePackage,
