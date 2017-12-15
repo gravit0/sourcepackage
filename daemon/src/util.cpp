@@ -222,7 +222,7 @@ norecursion:
             int pos = info.find('=');
             if (pos < 0) continue;
             key = std::string(c_str, pos);
-            value = std::string(c_str + pos + 1, size - pos);
+            value = std::string(c_str + pos + 1, size - pos - 1);
             lam(key, value, category, isSetDirectory);
             isSetDirectory = false;
         }

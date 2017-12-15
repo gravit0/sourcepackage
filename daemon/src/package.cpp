@@ -9,6 +9,7 @@ std::mutex Package::mutex;
 const char* package_exception::what() const noexcept {
     switch (thiserr) {
         case DependencieNotFound: return "Dependencie Not Found";
+        case DependencieBadVersion: return "Dependencie Bad Version";
         case ErrorParsePackage: return "Error parse package";
         case FileNotFound: return "File in the package was not found";
         default: return "Unknown Error";
@@ -27,6 +28,13 @@ bool Package_Version::operator>(Package_Version ver) {
 }
 
 int Package_Version::parse(std::string str) {
+    const char* c_str = str.c_str();
+    int pos = str.find('.');
+    major = std::stoi(std::string(c_str,pos));
+    int pos2 = str.find('.',pos+1);
+    minor = std::stoi(std::string(c_str+pos,pos-pos2));
+    int pos3 = str.find('-',pos2+1);
+    build = std::stoi(std::string(c_str+pos2,pos2-pos3));
     return 0;
 }
 
@@ -37,8 +45,8 @@ void Package::install(unsigned int flags) {
     if (!dependencies.empty()) {
         if (!(flags & flag_nodep))
             for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
-                Package* dep = Package::find(*i);
-                if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i));
+                Package* dep = Package::find((*i).name);
+                if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i).name);
                 if (dep == nullptr) {
                     throw package_exception(package_exception::DependencieNotFound);
                     isStartInstall = false;
@@ -57,13 +65,17 @@ void Package::install(unsigned int flags) {
             std::string targetfile = (cfg.rootdir + filename);
             const char* targetfile_c = targetfile.c_str();
             struct stat statbuff;
-            if (lstat(pckfile_c, &statbuff) < 0) {
-                if (!cfg.isIgnoreLowException) throw package_exception(package_exception::FileNotFound);
+            int statresult = 0;
+            if(i.action == FileAction::DIR || i.action == FileAction::FILE) statresult = lstat(pckfile_c, &statbuff);
+            if (!cfg.isIgnoreLowException && statresult < 0) {
+                throw package_exception(package_exception::FileNotFound);
                 continue;
             }
             auto filemode = statbuff.st_mode;
             if (i.mode >= 0) filemode = i.mode;
             if (i.action == FileAction::LINK) symlink(pckfile_c, targetfile_c);
+            else if (i.action == FileAction::TARGETLINK) symlink(i.target.c_str(), targetfile_c);
+            else if (i.action == FileAction::HARDLINK) link(i.target.c_str(), targetfile_c);
             else if (i.action == FileAction::DIR) {
                 mkdir(targetfile_c, filemode);
                 auto uid = statbuff.st_uid;
@@ -137,8 +149,8 @@ void Package::remove() {
     isDependence = false;
     if (!dependencies.empty()) {
         for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
-            Package* dep = Package::find(*i);
-            if (dep == nullptr) dep = Package::get(*i);
+            Package* dep = Package::find((*i).name);
+            if (dep == nullptr) dep = Package::get((*i).name);
             if (dep->isDependence) {
                 for (auto j = dep->dependencie.begin(); j != dep->dependencie.end(); ++j) {
                     if ((*j) == this) {

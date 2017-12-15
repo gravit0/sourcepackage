@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   commands.cpp
  * Author: gravit
  *
@@ -35,7 +35,7 @@ void cmd_exec(std::string cmd, Client* sock) {
                 }
             }
             if (pck == nullptr) {
-                if (isFullPath) Package::get(pckname);
+                if (isFullPath) pck = Package::get(pckname);
                 else pck = Package::get(cfg.packsdir + pckname);
             }
             if (pck == nullptr) {
@@ -81,7 +81,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         bool isStart = false;
         for (auto &i : pck->dependencies) {
             if (isStart) dep += ":";
-            dep += i;
+            dep += i.name;
         }
         sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version.major)).str()
                 + " " + pck->dir + " " + pck->author + " " + dep);

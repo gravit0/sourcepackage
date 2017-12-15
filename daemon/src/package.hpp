@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   package.hpp
  * Author: gravit
  *
@@ -18,7 +18,7 @@
 #include <exception>
 
 struct FileAction {
-    std::string filename;
+    std::string filename,target;
     int mode;
     int group;
     int owner;
@@ -26,7 +26,9 @@ struct FileAction {
     enum ActionList {
         DIR,
         FILE,
-        LINK
+        LINK,
+        HARDLINK,
+        TARGETLINK
     };
     ActionList action;
 };
@@ -38,7 +40,19 @@ struct Package_Version {
     bool operator>(Package_Version ver);
     int parse(std::string str);
 };
-
+struct Package_dependencie
+{
+    std::string name;
+    Package_Version version;
+    enum class Type
+    {
+        EQUAL,
+        UP,
+        DOWN,
+        NONE
+    };
+    Type version_operator = Type::NONE;
+};
 class Package : public boost::noncopyable {
 private:
     Package() = default;
@@ -47,7 +61,7 @@ public:
     std::string author;
     std::string dir;
     std::string license;
-    std::vector<std::string> dependencies;
+    std::vector<Package_dependencie> dependencies;
     std::list<FileAction> files;
     std::vector<Package*> dependencie;
     Package_Version version;
@@ -64,8 +78,8 @@ public:
     void clear();
     static Package* find(const std::string& name);
     static Package* unload(const std::string& name);
-    static int read_pack(const std::string& dir, Package* pack);
-    static Package* get(const std::string& dir);
+    static int read_pack(const std::string dir, Package* pack);
+    static Package* get(const std::string dir);
     static std::mutex mutex;
 };
 
@@ -75,7 +89,8 @@ public:
     enum Errors {
         DependencieNotFound,
         ErrorParsePackage,
-        FileNotFound
+        FileNotFound,
+        DependencieBadVersion
     };
     Errors thiserr;
     package_exception(Errors err);

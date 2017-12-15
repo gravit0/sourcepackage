@@ -90,7 +90,6 @@ int main(int argc, char** argv) {
     //RecArrUtils::ini_parser_lam("/home/gravit/test3.cfg",[](std::string key,std::string value,std::string category,bool isSet){
     //                                std::cout << key << " " << value << " " << category << " " << isSet << std::endl ;
     //                            });
-    //return 0;
     logger = new Logger(Logger::LOG_STDERR);
     gsock = nullptr;
     signal(SIGTERM, signal_handler);
@@ -124,7 +123,7 @@ int main(int argc, char** argv) {
                 break;
             case 'v':
             {
-                std::cout << "Source Package 1.1.0" << std::endl;
+                std::cout << "Source Package 1.1.0-1" << std::endl;
                 std::cout << "Author: Gravit" << std::endl;
                 std::cout << "Github: https://github.com/gravit0/sourcepackage" << std::endl;
                 std::cout << "This free software: you can modify and distribute it." << std::endl;
