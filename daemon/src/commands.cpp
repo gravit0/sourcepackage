@@ -15,7 +15,7 @@
 #include <sstream>
 #include <iostream>
 #include <sys/stat.h>
-
+#include <fstream>
 void cmd_exec(std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
@@ -59,7 +59,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         for (auto &i : packs) {
             isBreak = false;
             for (auto&j : i->files) {
-                if (j.filename == args[2]) {
+                if (j.filename == filename) {
                     isBreak = true;
                     break;
                 }
@@ -69,8 +69,20 @@ void cmd_exec(std::string cmd, Client* sock) {
                 break;
             }
         }
-        sock->write("0 " + resultpck->name);
-    } else if (basecmd == "packinfo") {
+        if(resultpck != nullptr) sock->write("0 " + resultpck->name);
+        else sock->write("error notfound");
+    } else if (basecmd == "exportfiles") {
+        std::string filename = args[1];
+        std::fstream f;
+        f.open(filename,std::ios_base::out);
+        for (auto &i : packs) {
+            for (auto&j : i->files) {
+                f << i->name + " " + j.filename << std::endl;
+            }
+        }
+        f.close();
+        sock->write("0");
+    }else if (basecmd == "packinfo") {
         std::string pckname = args[1];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) {

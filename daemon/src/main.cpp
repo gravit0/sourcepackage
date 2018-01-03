@@ -22,7 +22,7 @@ std::list<Package*> packs;
 Configuration cfg;
 Logger * logger;
 Sock* gsock;
-
+int main_set_signals();
 std::vector<std::string> split(const std::string& cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
@@ -51,7 +51,6 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
 }
 
 int config_parse(const std::string& filename) {
-
     auto lam = [](std::string frist,std::string last,std::string category,bool isSet) {
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
@@ -92,7 +91,8 @@ int main(int argc, char** argv) {
     //                            });
     logger = new Logger(Logger::LOG_STDERR);
     gsock = nullptr;
-    signal(SIGTERM, signal_handler);
+    //signal(SIGTERM, signal_handler);
+    main_set_signals();
     int opt = getopt_long(argc, argv, getopts::optString, getopts::long_options, NULL);
     cfg.isDaemon = false;
     std::string config_file = "/etc/sp.cfg";
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
         switch (opt) {
             case 'd':
                 cfg.isDaemon = true;
+                std:: cout << "start daemon" << std::endl;
                 break;
             case 's':
             {

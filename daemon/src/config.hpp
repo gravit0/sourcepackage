@@ -3,7 +3,7 @@
 #include <string>
 
 #include "Logger.hpp"
-#define COPY_BUF_SIZE 131072
+#define COPY_BUF_SIZE 8192
 #define SOCK_BUF_SIZE 1024
 #define SYMLINK_BUF_SIZE 256
 struct _SecurityInfo {
@@ -40,7 +40,7 @@ struct Configuration {
     bool isSetRootdir = false;
     bool isSetPackdir = false;
     bool isSetSockfile = false;
-    bool isDaemon = false;
+    bool isDaemon = true;
     bool isAutoinstall = false;
     bool reinstall_socket = true;
     bool isAllowWarning = true;

@@ -66,7 +66,7 @@ void Package::install(unsigned int flags) {
             const char* targetfile_c = targetfile.c_str();
             struct stat statbuff;
             int statresult = 0;
-            if(i.action == FileAction::DIR || i.action == FileAction::FILE) statresult = lstat(pckfile_c, &statbuff);
+            if(i.action == FileAction::DIR || i.action == FileAction::FILE) statresult = stat(pckfile_c, &statbuff);
             if (!cfg.isIgnoreLowException && statresult < 0) {
                 throw package_exception(package_exception::FileNotFound);
                 continue;
@@ -84,41 +84,20 @@ void Package::install(unsigned int flags) {
                 if (i.group >= 0) gid = i.group;
                 if (i.owner >= 0 || i.group > 0) chown(targetfile_c, uid, gid);
             } else if (i.action == FileAction::FILE) {
-                if (S_ISLNK(statbuff.st_mode)) {
-                    char lbuff[SYMLINK_BUF_SIZE];
-                    int len;
-                    if ((len = readlink(pckfile_c, lbuff, sizeof (lbuff) - 1)) != -1) {
-                        lbuff[len] = '\0';
-                        symlink(lbuff, targetfile_c);
-                    }
-                    continue;
-                }
-                std::string buf;
-                std::fstream f(pckfile, std::ios_base::in | std::ios_base::binary);
-                std::fstream f2(targetfile, std::ios_base::out | std::ios_base::binary);
-                if (f) {
-                    // get length of file:
-                    f.seekg(0, f.end);
-                    int length = f.tellg();
-                    int buflength = length;
-                    if (length > COPY_BUF_SIZE) buflength = COPY_BUF_SIZE;
-                    f.seekg(0, f.beg);
+                int f1 = open(pckfile_c,O_RDONLY);
+                int f2 = open(targetfile_c,O_WRONLY,filemode);
 
-                    char * buffer = new char [buflength];
-                    while (length > 0) {
-                        if (length < COPY_BUF_SIZE) buflength = length;
-                        f.read(buffer, buflength);
-                        if (f)
-                            f2.write(buffer, buflength);
-                        else
-                            std::cout << "error: only " << f.gcount() << " could be read";
-                        length = length - buflength;
-                    }
-                    delete[] buffer;
+                char* buf = new char[COPY_BUF_SIZE+1];
+                int writable = 0;
+                while(true)
+                {
+                    writable = read(f1,buf,COPY_BUF_SIZE);
+                    if(writable > 0) write(f2,buf,writable);
+                    else break;
                 }
-                f.close();
-                f2.close();
-                chmod(targetfile_c, filemode);
+                close(f1);
+                close(f2);
+                delete[] buf;
                 auto uid = statbuff.st_uid;
                 auto gid = statbuff.st_gid;
                 if (i.owner >= 0) uid = i.owner;
