@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   fswclient.cpp
  * Author: gravit
  *
@@ -43,7 +43,7 @@ std::vector<std::string> split(const std::string cmd, const char splitchar) {
     }
     return list;
 }
-static const char *optString = "c:ui:r:sl:f:p";
+static const char *optString = "vc:ui:r:sl:f:p";
 
 struct Args {
     bool flagInstall = false;
@@ -57,6 +57,19 @@ struct Args {
 };
 
 int main(int argc, char ** argv) {
+    if(argc<=1)
+    {
+        std::cout << "USAGE: " << std::string(argv[0]) << " [ARGS]" << std::endl;
+        std::cout << "ARGS:" << std::endl;
+        std::cout << "-i [PACKAGE]     install package" << std::endl;
+        std::cout << "-u [PACKAGE]     install package for full path" << std::endl;
+        std::cout << "-f [sockfile]    use UNIX socket [sockfile]" << std::endl;
+        std::cout << "-r [PACKAGE]     remove package" << std::endl;
+        std::cout << "-v               program version" << std::endl;
+        std::cout << "-s               stop daemon" << std::endl;
+        std::cout << "-i [PACKAGE]     install package" << std::endl;
+        return 0;
+    }
     int opt = getopt(argc, argv, optString);
     char sock_path[BUF_SIZE];
     Args args;
@@ -105,6 +118,15 @@ int main(int argc, char ** argv) {
                 break;
 
             }
+            case 'v':
+            {
+                std::cout << "Source Package 1.1.0-1" << std::endl;
+                std::cout << "Author: Gravit" << std::endl;
+                std::cout << "Github: https://github.com/gravit0/sourcepackage" << std::endl;
+                std::cout << "This free software: you can modify and distribute it." << std::endl;
+                return 0;
+                break;
+            }
             case 'f':
             {
                 strcpy(sock_path, optarg);
@@ -149,7 +171,7 @@ int main(int argc, char ** argv) {
         strcat(buf, " ");
     }else if (args.flagStop) {
         strcat(buf, "stop  ");
-    } 
+    }
     int sock;
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr_un srvr_name;

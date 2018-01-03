@@ -45,6 +45,7 @@ struct Configuration {
     bool reinstall_socket = true;
     bool isAllowWarning = true;
     bool isIgnoreLowException = false;
+    bool isPrintVersion = false;
 };
 extern Configuration cfg;
 #endif

@@ -14,4 +14,5 @@ extern std::list<Package*> packs;
 extern void cmd_exec(std::string cmd, Client* sock);
 extern Sock* gsock;
 extern int config_parse(const std::string& filename);
+int main(int argc, char** argv);
 #endif

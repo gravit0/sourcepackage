@@ -1,0 +1,8 @@
+project(sp_daemon)
+set( SOURCE_ROOT ./ )
+set (CMAKE_CXX_STANDARD 17)
+aux_source_directory( ${SOURCE_ROOT} SOURCES )
+add_executable(${PROJECT_NAME} ${SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES ENABLE_EXPORTS ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -Wall -Wextra -O2")
+target_link_libraries(${PROJECT_NAME} -pthread)

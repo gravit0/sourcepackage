@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
     if (getopts::longopts.isHelp == 1) {
         std::cout << "USAGE: " << std::string(argv[0]) << " [ARGS]" << std::endl;
         std::cout << "ARGS:" << std::endl;
-        std::cout << "-d,  --daemon    start daemonn, listen socket" << std::endl;
+        std::cout << "-d,  --daemon    start daemon, listen socket" << std::endl;
         std::cout << "-c [config]      use config [config]" << std::endl;
         std::cout << "-s [sockfile]    use UNIX socket [sockfile]" << std::endl;
         std::cout << "-r [rootdir]     set root directory" << std::endl;
@@ -200,6 +200,10 @@ int main(int argc, char** argv) {
         if (cfg.security.uid != 0 && (cfg.setuid_mode == Configuration::CFG_SETUID_USERMODE || cfg.setuid_mode == Configuration::CFG_SETUID_NONE)) {
             logger->logg('E', "UID != 0 and usermode off");
         }
+    }
+    if(!cfg.isDaemon && !getopts::longopts.isHelp && !cfg.isPrintVersion) {
+            std::cout << "Start daemon" << std::endl;
+            cfg.isDaemon = true;
     }
     ////
     if (!cfg.isDaemon) return 0;
