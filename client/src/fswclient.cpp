@@ -24,7 +24,51 @@
 #include <vector>
 #define SOCK_NAME sock_path
 #define BUF_SIZE 256
-
+enum class cmds : unsigned char
+{
+    install = 1,
+    remove = 2,
+    load = 3,
+    unload = 4,
+    stop = 5,
+    getpacks = 6,
+    setconfig = 7,
+    findfile = 8,
+    exportfiles = 9,
+    packinfo = 10,
+    unloadall = 11,
+    reload = 12,
+    reloadall = 13,
+    updateall = 14,
+    config = 15,
+    fixdir = 16,
+    freeme = 17,
+    add_listener = 18,
+    remove_listener = 19,
+    MAX_COMMANDS = 20
+};
+struct flags
+{
+    enum : unsigned short{
+        multiparams = 1 >> 0,
+        old_command = 1 >> 1,
+        full_path = 1 >> 2
+    };
+};
+struct cmdflags
+{
+    enum : unsigned int{
+        install_ = 1 >> 0
+    };
+};
+struct message_head
+{
+    unsigned char version;
+    cmds cmd;
+    unsigned short flag;
+    unsigned int cmdflags;
+    unsigned int size;
+};
 std::vector<std::string> split(const std::string cmd, const char splitchar) {
     int opos = 0;
     std::vector<std::string> list;
@@ -57,6 +101,7 @@ struct Args {
 };
 
 int main(int argc, char ** argv) {
+    message_head head;
     if(argc<=1)
     {
         std::cout << "USAGE: " << std::string(argv[0]) << " [ARGS]" << std::endl;
@@ -152,25 +197,25 @@ int main(int argc, char ** argv) {
         std::cout << "Error request!";
     }
     if (args.flagInstall) {
-        strcat(buf, "install ");
+        head.cmd = cmds::install;
         strcat(buf, args.pkgname.c_str());
         if (args.flagU) strcat(buf, " u");
     } else if (args.flagRemove) {
-        strcat(buf, "remove ");
+        head.cmd = cmds::remove;
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagLoad) {
-        if (args.flagU) strcat(buf, "unload  ");
-        else strcat(buf, "load ");
+        if (args.flagU) head.cmd = cmds::unload;
+        else head.cmd = cmds::load;
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagGetpack) {
-        strcat(buf, "getpacks ");
+        head.cmd = cmds::getpacks;
         strcat(buf, args.pkgname.c_str());
     } else if (args.flagSetConfig) {
-        strcat(buf, "setconfig ");
+        head.cmd = cmds::setconfig;
         strcat(buf, args.pkgname.c_str());
         strcat(buf, " ");
     }else if (args.flagStop) {
-        strcat(buf, "stop  ");
+        head.cmd = cmds::stop;
     }
     int sock;
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -186,9 +231,14 @@ int main(int argc, char ** argv) {
         perror("connect failed");
         exit(2);
     }
-    send(sock, buf, strlen(buf), 0);
+    char* newbuf = new char[BUF_SIZE + sizeof(message_head) + 1];
+    head.size = strlen(buf);
+    memcpy(newbuf,&head,sizeof(message_head));
+    memcpy(newbuf + sizeof(message_head),buf,BUF_SIZE);
+    int resultsize = strlen(buf) + sizeof(message_head);
+    send(sock, newbuf, resultsize, 0);
     buf[0] = '\0';
-    recv(sock, buf, sizeof (buf), 0);
+    recv(sock, buf, resultsize, 0);
     if (buf[0] != '\0') {
         std::string cmd(buf);
         std::vector<std::string> args = split(cmd, ' ');

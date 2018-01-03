@@ -16,11 +16,11 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <fstream>
-void cmd_exec(std::string cmd, Client* sock) {
+void cmd_exec(message_head* head, std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
-    if (basecmd == "install") {
-        std::string pckname = args[1];
+    if (head->cmd == cmds::install) {
+        std::string pckname = args[0];
         try {
             Package* pck = Package::find(pckname);
             bool isFakeInstall = false;
@@ -52,8 +52,8 @@ void cmd_exec(std::string cmd, Client* sock) {
             else if (err.thiserr == package_exception::ErrorParsePackage) sock->write("error pkgincorrect");
             else if (err.thiserr == package_exception::FileNotFound) sock->write("error pkgfilenotfound");
         }
-    } else if (basecmd == "findfile") {
-        std::string filename = args[1];
+    } else if (head->cmd == cmds::findfile) {
+        std::string filename = args[0];
         bool isBreak;
         Package* resultpck = nullptr;
         for (auto &i : packs) {
@@ -71,8 +71,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         }
         if(resultpck != nullptr) sock->write("0 " + resultpck->name);
         else sock->write("error notfound");
-    } else if (basecmd == "exportfiles") {
-        std::string filename = args[1];
+    } else if (head->cmd == cmds::exportfiles) {
+        std::string filename = args[0];
         std::fstream f;
         f.open(filename,std::ios_base::out);
         for (auto &i : packs) {
@@ -82,8 +82,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         }
         f.close();
         sock->write("0");
-    }else if (basecmd == "packinfo") {
-        std::string pckname = args[1];
+    }else if (head->cmd == cmds::packinfo) {
+        std::string pckname = args[0];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) {
             sock->write("error pkgnotfound");
@@ -97,8 +97,8 @@ void cmd_exec(std::string cmd, Client* sock) {
         }
         sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version.major)).str()
                 + " " + pck->dir + " " + pck->author + " " + dep);
-    } else if (basecmd == "remove") {
-        std::string pckname = args[1];
+    } else if (head->cmd == cmds::remove) {
+        std::string pckname = args[0];
         Package* pck = Package::find(pckname);
         if (pck != nullptr) {
             pck->remove();
@@ -107,46 +107,46 @@ void cmd_exec(std::string cmd, Client* sock) {
         } else {
             sock->write("error pkgnotfound");
         }
-    } else if (basecmd == "load") {
-        std::string pckdir = args[1];
+    } else if (head->cmd == cmds::load) {
+        std::string pckdir = args[0];
         Package::get(pckdir);
         sock->write("0");
-    } else if (basecmd == "fixdir") {
+    } else if (head->cmd == cmds::fixdir) {
         chdir("/");
         sock->write("0");
-    } else if (basecmd == "addListen") {
+    } else if (head->cmd == cmds::add_listener) {
         EventListener ev;
         ev.client = sock;
-        ev.event = std::stoi(args[1]);
+        ev.event = std::stoi(args[0]);
         event.addListener(ev);
         sock->write("0");
         sock->isAutoClosable = false;
-    } else if (basecmd == "freeme") {
+    } else if (head->cmd == cmds::freeme) {
         sock->isAutoClosable = false;
         sock->write("0");
-    } else if (basecmd == "removeListen") {
+    } else if (head->cmd == cmds::remove_listener) {
         event.removeListener(sock);
         sock->write("0");
         sock->isAutoClosable = true;
-    } else if (basecmd == "unload") {
-        std::string pckdir = args[1];
+    } else if (head->cmd == cmds::unload) {
+        std::string pckdir = args[0];
         Package* pck = Package::find(pckdir);
         delete pck;
         packs.remove(pck);
         sock->write("0");
-    } else if (basecmd == "unloadall") {
+    } else if (head->cmd == cmds::unloadall) {
         for (auto i = packs.begin(); i != packs.end(); ++i) {
             delete(*i);
         }
         packs.clear();
         sock->write("0");
-    } else if (basecmd == "reloadall") {
+    } else if (head->cmd == cmds::reloadall) {
         for (auto& i : packs) {
             Package::read_pack(i->dir, i);
         }
         sock->write("0");
-    } else if (basecmd == "reload") {
-        std::string pckname = args[1];
+    } else if (head->cmd == cmds::reload) {
+        std::string pckname = args[0];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) {
             sock->write("error pkgnotfound");
@@ -154,7 +154,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         }
         Package::read_pack(pck->dir, pck);
         sock->write("0");
-    } else if (basecmd == "updateall") {
+    } else if (head->cmd == cmds::updateall) {
         for (auto& i : packs) {
             Package_Version oldver = i->version;
             i->clear();
@@ -166,14 +166,14 @@ void cmd_exec(std::string cmd, Client* sock) {
             }
         }
         sock->write("0");
-    } else if (basecmd == "config") {
-        std::string param = args[1];
-        std::string value = args[2];
+    } else if (head->cmd == cmds::config) {
+        std::string param = args[0];
+        std::string value = args[1];
         if (param == "rootdir") cfg.rootdir = value;
         else if (param == "packsdir") cfg.packsdir = value;
         else if (param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
         sock->write("0");
-    } else if (basecmd == "getpacks") {
+    } else if (head->cmd == cmds::getpacks) {
         std::string reply = "0 ";
         for (auto& i : packs) {
             reply += i->name;
@@ -184,7 +184,7 @@ void cmd_exec(std::string cmd, Client* sock) {
             reply += ' ';
         }
         sock->write(reply);
-    } else if (basecmd == "setconfig") {
+    } else if (head->cmd == cmds::setconfig) {
         std::string cfgdir = args[1];
         int result = config_parse(cfgdir);
         if (result == 1) {
@@ -192,7 +192,7 @@ void cmd_exec(std::string cmd, Client* sock) {
         } else {
             sock->write("0");
         }
-    } else if (basecmd == "stop") {
+    } else if (head->cmd == cmds::stop) {
         gsock->stop();
         sock->write("0");
     } else {

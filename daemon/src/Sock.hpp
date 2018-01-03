@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   Sock.hpp
  * Author: gravit
  *
@@ -38,7 +38,53 @@ public:
     int read();
     virtual ~Client();
 };
-
+//ВАЖНО
+enum class cmds : unsigned char
+{
+    install = 1,
+    remove = 2,
+    load = 3,
+    unload = 4,
+    stop = 5,
+    getpacks = 6,
+    setconfig = 7,
+    findfile = 8,
+    exportfiles = 9,
+    packinfo = 10,
+    unloadall = 11,
+    reload = 12,
+    reloadall = 13,
+    updateall = 14,
+    config = 15,
+    fixdir = 16,
+    freeme = 17,
+    add_listener = 18,
+    remove_listener = 19,
+    MAX_COMMANDS = 20
+};
+struct flags
+{
+    enum : unsigned short{
+        multiparams = 1 >> 0,
+        old_command = 1 >> 1,
+        full_path = 1 >> 2
+    };
+};
+struct cmdflags
+{
+    enum : unsigned int{
+        install_ = 1 >> 0
+    };
+};
+struct message_head
+{
+    unsigned char version;
+    cmds cmd;
+    unsigned short flag;
+    unsigned int cmdflags;
+    unsigned int size;
+};
+//////
 class Sock : public boost::noncopyable {
 private:
     struct sockaddr_un srvr_name;
@@ -50,7 +96,7 @@ private:
     epoll_event* events;
 public:
     Sock(std::string filepath, int max_connect);
-    void loop(void (*lpfunc)(std::string, Client*));
+    void loop(void (*lpfunc)(message_head*, std::string, Client*));
     int deattach();
     void stop();
     int wait(int timeout);
