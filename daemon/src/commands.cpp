@@ -23,27 +23,17 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         std::string pckname = args[0];
         try {
             Package* pck = Package::find(pckname);
-            bool isFakeInstall = false;
-            bool isNoDep = false;
-            bool isFullPath = false;
             unsigned int flags = 0;
-            if (args.size() > 2) {
-                for (auto &i : args[2]) {
-                    if (i == 'f') isFakeInstall = true;
-                    else if (i == 'u') isFullPath = true;
-                    else if (i == 'd') isNoDep = true;
-                }
-            }
             if (pck == nullptr) {
-                if (isFullPath) pck = Package::get(pckname);
+                if (head->flag & flags::fullpath) pck = Package::get(pckname);
                 else pck = Package::get(cfg.packsdir + pckname);
             }
             if (pck == nullptr) {
                 sock->write("error pkgnotfound");
                 goto ifend;
             }
-            if (isFakeInstall) flags |= Package::flag_fakeInstall;
-            if (isNoDep) flags |= Package::flag_nodep;
+            if (head->cmdflags & cmdflags::install::fakeinstall) flags |= Package::flag_fakeInstall;
+            if (head->cmdflags & cmdflags::install::nodep) flags |= Package::flag_nodep;
             pck->install(flags);
             sock->write("0");
             event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));

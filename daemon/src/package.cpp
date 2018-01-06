@@ -68,7 +68,9 @@ void Package::install(unsigned int flags) {
             int statresult = 0;
             if(i.action == FileAction::DIR || i.action == FileAction::FILE) statresult = stat(pckfile_c, &statbuff);
             if (!cfg.isIgnoreLowException && statresult < 0) {
-                throw package_exception(package_exception::FileNotFound);
+                    std::cerr << "FILE " << pckfile << " FSTAT RETURN CODE " << statresult << std::endl;
+                    perror("[C]");
+                //throw package_exception(package_exception::FileNotFound);
                 continue;
             }
             auto filemode = statbuff.st_mode;
@@ -85,15 +87,33 @@ void Package::install(unsigned int flags) {
                 if (i.owner >= 0 || i.group > 0) chown(targetfile_c, uid, gid);
             } else if (i.action == FileAction::FILE) {
                 int f1 = open(pckfile_c,O_RDONLY);
-                int f2 = open(targetfile_c,O_WRONLY,filemode);
-
+                int f2 = open(targetfile_c,O_WRONLY | O_CREAT,filemode);
+                if(f2 < 0)
+                {
+                    std::cerr << "FILE " << pckfile << " OPEN RETURN CODE " << statresult << std::endl;
+                    perror("[C]");
+                    break;
+                }
                 char* buf = new char[COPY_BUF_SIZE+1];
                 int writable = 0;
                 while(true)
                 {
                     writable = read(f1,buf,COPY_BUF_SIZE);
-                    if(writable > 0) write(f2,buf,writable);
-                    else break;
+                    if(writable > 0) {
+                            int writeresult = write(f2,buf,writable);
+                            if(writeresult < 0)
+                            {
+                                std::cerr << "FILE " << pckfile << " WRITE RETURN CODE " << statresult << std::endl;
+                                perror("[C]");
+                                break;
+                            }
+                    }
+                    else if(writable == 0) break;
+                    else {
+                        std::cerr << "FILE " << pckfile << " READ RETURN CODE " << writable << std::endl;
+                        perror("[C]");
+                        break;
+                    }
                 }
                 close(f1);
                 close(f2);

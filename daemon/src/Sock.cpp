@@ -104,10 +104,10 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
                     {
                         std::cerr << "Error parse 2" << std::endl;
                     }
-                    std::cout << "HEAD version " << (int) head->version << std::endl;
-                    std::cout << "HEAD size " << head->size << std::endl;
-                    std::cout << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
-                    std::cout << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
+                    std::cerr << "HEAD version " << (int) head->version << std::endl;
+                    std::cerr << "HEAD size " << head->size << std::endl;
+                    std::cerr << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
+                    std::cerr << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
                     //printf("Client sent: %s\n", rsock->buf);
                     std::string cmd(rsock->buf + sizeof(message_head), head->size);
                     lpfunc(head,cmd, rsock);
@@ -144,7 +144,16 @@ int Client::read() {
     bytes = recv(sock, buf, sizeof (buf), 0);
     return bytes;
 }
-
+int Client::send_ok()
+{
+    message_result result{0,0,0,0};
+    return send(sock, &result, sizeof(result), 0);
+}
+int Client::send_error(unsigned int errorcode)
+{
+    message_error result{1,0,0,sizeof(errorcode),errorcode};
+    return send(sock, &result, sizeof(result), 0);
+}
 Client::~Client() {
     close(sock);
     if (isListener) event.removeListener(this);

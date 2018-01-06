@@ -1,14 +1,18 @@
 #include <string>
 #include <vector>
 #include "Sock.hpp"
-struct CallCell
-{
-    void (*func)(unsigned int, std::string, Client*);
-};
 class CallTable
 {
 public:
+    typedef void (*CallCell)(unsigned int, std::string, Client*);
     CallCell* table;
-    int size;
-    CallTable(int size);
+    unsigned int size;
+    unsigned int autoincrement;
+    CallTable(unsigned int size,CallCell _default);
+    bool add(CallCell c);
+    inline void call(unsigned int index,unsigned int arg1, std::string arg2, Client* arg3)
+    {
+        return table[index](arg1,arg2,arg3);
+    }
+    bool realloc(unsigned int newsize);
 };

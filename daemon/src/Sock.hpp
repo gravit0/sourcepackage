@@ -22,7 +22,14 @@
 #include <sys/epoll.h>
 #include <memory>
 class Sock;
-
+namespace result_errors
+{
+    enum : unsigned int{
+        pkgnotfound = 1,
+        badrequest = 2,
+        filenotfound = 3
+    };
+}
 class Client : public boost::noncopyable {
 protected:
     int sock;
@@ -35,11 +42,15 @@ public:
     bool isListener = false;
     bool isAutoClosable = true;
     int write(std::string str);
+    int send_ok();
+    int send_error(unsigned int errorcode);
     int read();
     virtual ~Client();
 };
 //ВАЖНО
-enum class cmds : unsigned char
+namespace cmds
+{
+enum : unsigned char
 {
     install = 1,
     remove = 2,
@@ -62,27 +73,43 @@ enum class cmds : unsigned char
     remove_listener = 19,
     MAX_COMMANDS = 20
 };
-struct flags
+}
+namespace flags
 {
     enum : unsigned short{
         multiparams = 1 >> 0,
         old_command = 1 >> 1,
-        full_path = 1 >> 2
+        fullpath = 1 >> 2
     };
-};
-struct cmdflags
+}
+namespace cmdflags{
+namespace install
 {
     enum : unsigned int{
-        install_ = 1 >> 0
+        nodep = 1 >> 0,
+        fakeinstall = 1 << 1
     };
-};
+}
+}
+
 struct message_head
 {
     unsigned char version;
-    cmds cmd;
+    unsigned char cmd;
     unsigned short flag;
     unsigned int cmdflags;
     unsigned int size;
+};
+struct message_result
+{
+    unsigned char code;
+    unsigned char version;
+    signed short flag; //Зарезервировано
+    unsigned int size;
+};
+struct message_error : public message_result
+{
+    unsigned int errorcode;
 };
 //////
 class Sock : public boost::noncopyable {

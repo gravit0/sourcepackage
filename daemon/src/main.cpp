@@ -163,6 +163,7 @@ int main(int argc, char** argv) {
         if (stat(cfg.packsdir.c_str(), &statbuff) != 0) logger->logg('W', "packsdir " + cfg.packsdir + " not found");
     }
     if (cfg.isAutoinstall) {
+        std::cerr << "Autoinstall started..." << std::endl;
         auto list = split(cfg.autoinstall, ':');
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
@@ -172,6 +173,7 @@ int main(int argc, char** argv) {
                 logger->logg('E', "package " + pckname + " not found");
                 continue;
             }
+            std::cerr << "Autoinstall " << pck->name << std::endl;
             pck->install();
         }
     }
