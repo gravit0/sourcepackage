@@ -47,6 +47,7 @@ public:
     int read();
     virtual ~Client();
 };
+#include "call_table.hpp"
 //ВАЖНО
 namespace cmds
 {
@@ -124,6 +125,7 @@ private:
 public:
     Sock(std::string filepath, int max_connect);
     void loop(void (*lpfunc)(message_head*, std::string, Client*));
+    int exec(char* data, int size,void (*lpfunc)(message_head*, std::string, Client*));
     int deattach();
     void stop();
     int wait(int timeout);

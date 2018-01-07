@@ -24,7 +24,7 @@
 #include <map>
 #include "EventManager.hpp"
 #include "Logger.hpp"
-
+#include "call_table.hpp"
 Sock::Sock(std::string filepath, int max_connect) {
     this->max_connect = max_connect;
     epollsock = epoll_create(max_connect);
@@ -96,26 +96,10 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
                         continue;
                     }
                     rsock->buf[rsock->bytes] = 0;
-                    if(rsock->bytes < sizeof(message_head)) {
-                        std::cerr << "Error parse 1" << std::endl;
+                    if(exec(rsock->buf,rsock->bytes,lpfunc) < 0) {
                         delete rsock;
                         continue;
                     }
-                    message_head* head = (message_head*)rsock->buf;
-                    if(rsock->bytes != sizeof(message_head) + head->size)
-                    {
-                        std::cerr << "Error parse 2" << std::endl;
-                        delete rsock;
-                        continue;
-                    }
-                    std::string cmd(rsock->buf + sizeof(message_head), head->size);
-                    std::cerr << "HEAD version " << (int) head->version << std::endl;
-                    std::cerr << "HEAD size " << head->size << std::endl;
-                    std::cerr << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
-                    std::cerr << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
-                    if(head->size > 0) std::cerr << "STRING " << cmd << std::endl;
-                    //printf("Client sent: %s\n", rsock->buf);
-                    lpfunc(head,cmd, rsock);
                     if (rsock->isAutoClosable) {
                         delete rsock;
                     }
@@ -128,7 +112,29 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
         }
     }
 }
-
+int Sock::exec(char* data, int size,void (*lpfunc)(message_head*, std::string, Client*))
+{
+    if(size < sizeof(message_head))
+    {
+        std::cerr << "Error parse 1" << std::endl;
+        return -1;
+    }
+    message_head* head = (message_head*)data;
+    if(size != sizeof(message_head) + head->size)
+    {
+        std::cerr << "Error parse 2" << std::endl;
+        return -1;
+    }
+    std::string cmd(data + sizeof(message_head), head->size);
+    std::cerr << "HEAD version " << (int) head->version << std::endl;
+    std::cerr << "HEAD size " << head->size << std::endl;
+    std::cerr << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
+    std::cerr << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
+    if(head->size > 0) std::cerr << "STRING " << cmd << std::endl;
+    //printf("Client sent: %s\n", rsock->buf);
+    //lpfunc(head,cmd, rsock);
+    return 0;
+}
 int Sock::wait(int timeout) {
     return epoll_wait(epollsock, events, max_connect, timeout);
 }

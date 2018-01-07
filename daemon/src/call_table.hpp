@@ -1,3 +1,5 @@
+#ifndef CALLTABLE_HPP
+#define CALLTABLE_HPP
 #include <string>
 #include <vector>
 #include "Sock.hpp"
@@ -16,3 +18,4 @@ public:
     }
     bool realloc(unsigned int newsize);
 };
+#endif

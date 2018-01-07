@@ -50,7 +50,17 @@ struct ptr_and_error
     int sock;
     int code;
 };
+struct connect_st
+{
+    int code;
+    int bufsize;
+    int sock;
+    int readed;
+    char* buf;
+};
 extern struct ptr_and_size* source_of_package_alloc(unsigned char cmd,unsigned short flags,unsigned int cmdflags,unsigned int size);
+extern struct connect_st* sp_connect_alloc(int bufsize);
+extern void sp_connect_free(struct connect_st* st);
 extern struct ptr_and_size source_of_package_one_command(unsigned int cmd);
 extern struct ptr_and_size source_of_package_one_command_flags(unsigned int cmd,unsigned int cmdflags);
 extern struct ptr_and_size source_of_package_one_command_parametr(unsigned int cmd,char* str);
@@ -62,7 +72,7 @@ extern struct ptr_and_size sp_setconfig(char* file);
 extern struct ptr_and_size sp_fixdir();
 extern void source_of_package_free(struct ptr_and_size data);
 extern void source_of_package_freeptr(struct ptr_and_size* data);
-extern int sp_connect(char* path);
-extern int sp_push_command(struct ptr_and_size* data);
-extern struct ptr_and_size sp_get_error();
-extern int sp_close();
+extern int sp_connect(char* path,struct connect_st* st);
+extern int sp_push_command(struct ptr_and_size* data,struct connect_st* st);
+extern struct ptr_and_size sp_get_error(struct connect_st* st);
+extern int sp_close(struct connect_st* st);
