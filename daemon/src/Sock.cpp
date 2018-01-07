@@ -98,18 +98,23 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
                     rsock->buf[rsock->bytes] = 0;
                     if(rsock->bytes < sizeof(message_head)) {
                         std::cerr << "Error parse 1" << std::endl;
+                        delete rsock;
+                        continue;
                     }
                     message_head* head = (message_head*)rsock->buf;
                     if(rsock->bytes != sizeof(message_head) + head->size)
                     {
                         std::cerr << "Error parse 2" << std::endl;
+                        delete rsock;
+                        continue;
                     }
+                    std::string cmd(rsock->buf + sizeof(message_head), head->size);
                     std::cerr << "HEAD version " << (int) head->version << std::endl;
                     std::cerr << "HEAD size " << head->size << std::endl;
                     std::cerr << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
                     std::cerr << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
+                    if(head->size > 0) std::cerr << "STRING " << cmd << std::endl;
                     //printf("Client sent: %s\n", rsock->buf);
-                    std::string cmd(rsock->buf + sizeof(message_head), head->size);
                     lpfunc(head,cmd, rsock);
                     if (rsock->isAutoClosable) {
                         delete rsock;
