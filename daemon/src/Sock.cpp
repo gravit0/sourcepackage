@@ -25,7 +25,7 @@
 #include "EventManager.hpp"
 #include "Logger.hpp"
 #include "call_table.hpp"
-Sock::Sock(std::string filepath, int max_connect) {
+Sock::Sock(std::string filepath, int max_connect) : table((unsigned int)cmds::MAX_COMMANDS,nullptr) {
     this->max_connect = max_connect;
     epollsock = epoll_create(max_connect);
     events = new epoll_event[max_connect];
@@ -59,9 +59,13 @@ const char* socket_exception::what() const noexcept {
 Client::Client(int sock) {
     this->sock = sock;
 }
+int Client::write(std::pair<void*,size_t> data)
+{
+    return send(sock, data.first, data.second, 0);
+}
 std::map<int, Client*> smap;
 
-void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
+void Sock::loop() {
     loopEnable = true;
     static struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
@@ -96,7 +100,7 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
                         continue;
                     }
                     rsock->buf[rsock->bytes] = 0;
-                    if(exec(rsock->buf,rsock->bytes,lpfunc) < 0) {
+                    if(exec(rsock->buf,rsock->bytes,rsock) < 0) {
                         delete rsock;
                         continue;
                     }
@@ -112,7 +116,7 @@ void Sock::loop(void (*lpfunc)(message_head*, std::string, Client*)) {
         }
     }
 }
-int Sock::exec(char* data, int size,void (*lpfunc)(message_head*, std::string, Client*))
+int Sock::exec(char* data, unsigned int size,Client* t)
 {
     if(size < sizeof(message_head))
     {
@@ -133,6 +137,21 @@ int Sock::exec(char* data, int size,void (*lpfunc)(message_head*, std::string, C
     if(head->size > 0) std::cerr << "STRING " << cmd << std::endl;
     //printf("Client sent: %s\n", rsock->buf);
     //lpfunc(head,cmd, rsock);
+    if(head->cmd >= cmds::MAX_COMMANDS)
+    {
+        std::cerr << "Error command" << std::endl;
+        return -1;
+    }
+    auto result = table.table[head->cmd](head->cmdflags,cmd);
+    t->write(result);
+    if(result.second == sizeof(message_head))
+    {
+        delete static_cast<message_head*>(result.first);
+    }
+    else
+    {
+        delete[] static_cast<char*>(result.first);
+    }
     return 0;
 }
 int Sock::wait(int timeout) {

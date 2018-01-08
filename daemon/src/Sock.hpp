@@ -21,6 +21,7 @@
 #include <boost/noncopyable.hpp>
 #include <sys/epoll.h>
 #include <memory>
+#include "call_table.hpp"
 class Sock;
 namespace result_errors
 {
@@ -42,6 +43,7 @@ public:
     bool isListener = false;
     bool isAutoClosable = true;
     int write(std::string str);
+    int write(std::pair<void*,size_t> data);
     int send_ok();
     int send_error(unsigned int errorcode);
     int read();
@@ -101,17 +103,6 @@ struct message_head
     unsigned int cmdflags;
     unsigned int size;
 };
-struct message_result
-{
-    unsigned char code;
-    unsigned char version;
-    signed short flag; //Зарезервировано
-    unsigned int size;
-};
-struct message_error : public message_result
-{
-    unsigned int errorcode;
-};
 //////
 class Sock : public boost::noncopyable {
 private:
@@ -123,9 +114,10 @@ private:
     int max_connect;
     epoll_event* events;
 public:
+    CallTable table;
     Sock(std::string filepath, int max_connect);
-    void loop(void (*lpfunc)(message_head*, std::string, Client*));
-    int exec(char* data, int size,void (*lpfunc)(message_head*, std::string, Client*));
+    void loop();
+    int exec(char* data, unsigned int size,Client* t);
     int deattach();
     void stop();
     int wait(int timeout);

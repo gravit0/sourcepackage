@@ -1,4 +1,6 @@
 #include "call_table.hpp"
+#include <unistd.h>
+#include <string.h>
 CallTable::CallTable(unsigned int size,CallCell _default)
 {
     table = new CallCell[size];

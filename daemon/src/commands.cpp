@@ -16,6 +16,35 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <fstream>
+
+std::pair<void*,size_t> cmd_unknown(unsigned int, std::string)
+{
+    message_result* result = new message_result{5,0,0,0};
+    std::cerr << "UNKNOWN CMD" << std::endl;
+    return {result,sizeof(result)};
+}
+void push_cmds()
+{
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+    gsock->table.add(&cmd_unknown);
+}
 void cmd_exec(message_head* head, std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];

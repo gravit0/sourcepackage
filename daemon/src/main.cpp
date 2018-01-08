@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
                 break;
             case 'v':
             {
-                std::cout << "Source Package 1.1.0-1" << std::endl;
+                std::cout << "Source Package 2.0.0-1" << std::endl;
                 std::cout << "Author: Gravit" << std::endl;
                 std::cout << "Github: https://github.com/gravit0/sourcepackage" << std::endl;
                 std::cout << "This free software: you can modify and distribute it." << std::endl;
@@ -224,7 +224,8 @@ int main(int argc, char** argv) {
                 exit(0);
             } else cfg.security.pid = getpid();
         }
-        gsock->loop(&cmd_exec);
+        push_cmds();
+        gsock->loop();
     } catch (socket_exception e) {
         logger->logg('C', "An exception was thrown out. Information: " + std::string(e.what()));
         perror("[C] Failed reason:");
