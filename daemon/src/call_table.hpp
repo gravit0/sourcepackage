@@ -4,10 +4,18 @@
 #include <vector>
 struct message_result
 {
-    unsigned char code;
     unsigned char version;
+    unsigned char code;
     signed short flag; //Зарезервировано
     unsigned int size;
+    enum : unsigned char{
+        OK = 0,
+        ERROR_FILENOTFOUND = 1,
+        ERROR_DEPNOTFOUND = 2,
+        ERROR_PKGNOTFOUND = 3,
+        ERROR_PKGINCORRECT = 4,
+        ERROR_CMDINCORRECT = 5
+    };
 };
 struct message_error : public message_result
 {

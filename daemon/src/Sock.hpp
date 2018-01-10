@@ -23,14 +23,6 @@
 #include <memory>
 #include "call_table.hpp"
 class Sock;
-namespace result_errors
-{
-    enum : unsigned int{
-        pkgnotfound = 1,
-        badrequest = 2,
-        filenotfound = 3
-    };
-}
 class Client : public boost::noncopyable {
 protected:
     int sock;
@@ -41,7 +33,7 @@ protected:
 public:
     typedef std::shared_ptr<Client> ptr;
     bool isListener = false;
-    bool isAutoClosable = true;
+    bool isAutoClosable = false;
     int write(std::string str);
     int write(std::pair<void*,size_t> data);
     int send_ok();
@@ -81,8 +73,7 @@ namespace flags
 {
     enum : unsigned short{
         multiparams = 1 >> 0,
-        old_command = 1 >> 1,
-        fullpath = 1 >> 2
+        old_command = 1 >> 1
     };
 }
 namespace cmdflags{
@@ -90,7 +81,8 @@ namespace install
 {
     enum : unsigned int{
         nodep = 1 >> 0,
-        fakeinstall = 1 << 1
+        fakeinstall = 1 << 1,
+        full_path = 1 << 2
     };
 }
 }
