@@ -91,17 +91,20 @@ int Package::read_pack(const std::string dir, Package* pack) {
             }
         }
     };
-    RecArrUtils::ini_parser_lam(dir + "/package.ini",lam);
+    int ret = RecArrUtils::ini_parser_lam(dir + "/package.ini",lam);
     pack->isInstalled = false;
     pack->isDependence = false;
     pack->isStartInstall = false;
     pack->dir = dir;
-    return 0;
+    return ret;
 }
 
 Package* Package::get(const std::string dir) {
     Package* pack = new Package();
-    if (Package::read_pack(dir, pack) != 0) return nullptr;
+    if (Package::read_pack(dir, pack) != 0) {
+            delete pack;
+            return nullptr;
+    }
     packs.push_back(pack);
     return pack;
 }

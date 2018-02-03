@@ -19,7 +19,11 @@ const char* package_exception::what() const noexcept {
 package_exception::package_exception(Errors err) {
     thiserr = err;
 }
-
+package_exception::package_exception(Errors err,const std::string& pkg)
+{
+    thiserr = err;
+    this->pkg = pkg;
+}
 bool Package_Version::operator>(Package_Version ver) {
     if (major > ver.major) return true;
     if (minor > ver.minor) return true;
@@ -48,8 +52,8 @@ void Package::install(unsigned int flags) {
                 Package* dep = Package::find((*i).name);
                 if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i).name);
                 if (dep == nullptr) {
-                    throw package_exception(package_exception::DependencieNotFound);
                     isStartInstall = false;
+                    throw new package_exception(package_exception::DependencieNotFound,(*i).name);
                     return;
                 }
                 dep->install();

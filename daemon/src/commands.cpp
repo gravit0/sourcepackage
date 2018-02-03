@@ -19,51 +19,79 @@
 
 std::pair<void*,size_t> cmd_unknown(unsigned int, std::string)
 {
-    message_result* result = new message_result{message_result::ERROR_CMDINCORRECT,0,0,0};
+    message_result* result = new message_result{0,message_result::ERROR_CMDINCORRECT,0,0};
     std::cerr << "UNKNOWN CMD" << std::endl;
     return {result,sizeof(result)};
 }
 std::pair<void*,size_t> cmd_stop(unsigned int, std::string)
 {
-    message_result* result = new message_result{5,0,0,0};
+    message_result* result = new message_result{0,message_result::OK,0,0};
     std::cerr << "STOP CMD" << std::endl;
     gsock->stop();
     return {result,sizeof(result)};
 }
+std::pair<void*,size_t> cmd_getpacks(unsigned int, std::string)
+{
+    char* buf;
+    int bufsize = 0;
+    for (auto& i : packs)
+    {
+        bufsize+=i->name.size() + 2;
+    }
+    buf= new char[bufsize + sizeof(message_result)];
+    char* it = buf  + sizeof(message_result);
+    for (auto& i : packs)
+    {
+        char* c_str = i->name.data();
+        int str_size = i->name.size();
+        memcpy(it+1,c_str,str_size);
+        it[str_size+1] = 0;
+        *it = (i->isInstalled << 0) | (i->isStartInstall << 1) | (i->isDependence << 2);
+        it+=str_size + 2;
+    }std::cerr << "PKGLIST" << std::endl;
+    message_result* m_result = (message_result*) buf;
+    m_result->version = 0;
+    m_result->code = message_result::OK;
+    m_result->flag = 0;
+    m_result->size = bufsize;
+    return {buf,bufsize + sizeof(message_result)};
+}
 std::pair<void*,size_t> cmd_install(unsigned int flag, std::string pckname)
 {
-    message_result* result = new message_result{0,0,0,0};
+    message_result* result = new message_result{0,message_result::OK,0,0};
     try {
         Package* pck = Package::find(pckname);
         unsigned int flags = 0;
         if (pck == nullptr)
         {
-            if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
-            else pck = Package::get(cfg.packsdir + pckname);
-        }
-        if (pck == nullptr)
-        {
-            result->code = message_result::ERROR_PKGNOTFOUND;
-            goto ifend;
+            std::cerr << cfg.packsdir + pckname << std::endl;
+            /*if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
+            else*/ pck = Package::get(cfg.packsdir + pckname);
+            if (pck == nullptr)
+            {
+                std::cerr << "INSTALL CMD 2" << std::endl;
+                result->code = message_result::ERROR_PKGNOTFOUND;
+                return {result,sizeof(result)};
+            }
         }
         if (flag & cmdflags::install::fakeinstall) flags |= Package::flag_fakeInstall;
         if (flag & cmdflags::install::nodep) flags |= Package::flag_nodep;
         pck->install(flags);
         event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
-    catch (package_exception err)
+    catch (package_exception* err)
     {
-        if (err.thiserr == package_exception::DependencieNotFound) result->code = message_result::ERROR_DEPNOTFOUND;
-        else if (err.thiserr == package_exception::ErrorParsePackage) result->code = message_result::ERROR_PKGINCORRECT;
-        else if (err.thiserr == package_exception::FileNotFound) result->code = message_result::ERROR_FILENOTFOUND;
+        if (err->thiserr == package_exception::DependencieNotFound) result->code = message_result::ERROR_DEPNOTFOUND;
+        else if (err->thiserr == package_exception::ErrorParsePackage) result->code = message_result::ERROR_PKGINCORRECT;
+        else if (err->thiserr == package_exception::FileNotFound) result->code = message_result::ERROR_FILENOTFOUND;
+        delete err;
     }
-    ifend:
     std::cerr << "INSTALL CMD" << std::endl;
     return {result,sizeof(result)};
 }
 std::pair<void*,size_t> cmd_remove(unsigned int, std::string pckname)
 {
-    message_result* result = new message_result{message_result::OK,0,0,0};
+    message_result* result = new message_result{0,message_result::OK,0,0};
     Package* pck = Package::find(pckname);
     if (pck != nullptr)
     {
@@ -77,19 +105,62 @@ std::pair<void*,size_t> cmd_remove(unsigned int, std::string pckname)
 }
 std::pair<void*,size_t> cmd_freeme(unsigned int, std::string) // Устаревшее
 {
-    message_result* result = new message_result{message_result::ERROR_CMDINCORRECT,0,0,0};
-
+    message_result* result = new message_result{0,message_result::ERROR_CMDINCORRECT,0,0};
     return {result,sizeof(result)};
 }
-std::pair<void*,size_t> cmd_fixdir(unsigned int, std::string) // Устаревшее
+std::pair<void*,size_t> cmd_fixdir(unsigned int, std::string)
 {
-    message_result* result = new message_result{message_result::OK,0,0,0};
+    message_result* result = new message_result{0,message_result::OK,0,0};
     chdir("/");
+    return {result,sizeof(result)};
+}
+std::pair<void*,size_t> cmd_packinfo(unsigned int, std::string pckname)
+{
+
+    message_result* result;
+    Package* pck = Package::find(pckname);
+    if (pck == nullptr)
+    {
+        result = new message_result{0,message_result::OK,0,0};
+        return {result,sizeof(result)};
+    }
+    return {result,sizeof(result)};
+}
+std::pair<void*,size_t> cmd_load(unsigned int, std::string pckname) // Устаревшее
+{
+    message_result* result = new message_result{0,message_result::OK,0,0};
+    Package* pck = Package::find(pckname);
+    if(pck != nullptr)
+    {
+        result->code = message_result::ERROR_PKGALREADYLOADED;
+        return {result,sizeof(result)};
+    }
+    else{
+        Package* pck = Package::get(pckname);
+        if(pck == nullptr)
+        {
+            result->code = message_result::ERROR_PKGNOTFOUND;
+            return {result,sizeof(result)};
+        }
+    }
+    return {result,sizeof(result)};
+}
+std::pair<void*,size_t> cmd_unload(unsigned int, std::string pckname) // Устаревшее
+{
+    message_result* result = new message_result{0,message_result::OK,0,0};
+    Package* pck = Package::find(pckname);
+    if(pck == nullptr)
+    {
+        result->code = message_result::ERROR_PKGNOTFOUND;
+        return {result,sizeof(result)};
+    }
+    delete pck;
+    packs.remove(pck);
     return {result,sizeof(result)};
 }
 std::pair<void*,size_t> cmd_setconfig(unsigned int, std::string cfgdir)
 {
-    message_result* result = new message_result{message_result::ERROR_CMDINCORRECT,0,0,0};
+    message_result* result = new message_result{0,message_result::OK,0,0};
     if (config_parse(cfgdir) == 1)
     {
         result->code = message_result::ERROR_FILENOTFOUND;
@@ -101,10 +172,10 @@ void push_cmds()
     gsock->table.add(&cmd_unknown); // 0
     gsock->table.add(&cmd_install); // 1
     gsock->table.add(&cmd_remove);  // 2
-    gsock->table.add(&cmd_unknown); // 3
-    gsock->table.add(&cmd_unknown); // 4
+    gsock->table.add(&cmd_load);    // 3
+    gsock->table.add(&cmd_unload);  // 4
     gsock->table.add(&cmd_stop);    // 5
-    gsock->table.add(&cmd_unknown); // 6
+    gsock->table.add(&cmd_getpacks); // 6
     gsock->table.add(&cmd_setconfig); // 7
     gsock->table.add(&cmd_unknown); // 8
     gsock->table.add(&cmd_unknown); // 9
@@ -114,7 +185,7 @@ void push_cmds()
     gsock->table.add(&cmd_unknown); // 13
     gsock->table.add(&cmd_unknown); // 14
     gsock->table.add(&cmd_unknown); // 15
-    gsock->table.add(&cmd_fixdir); // 16
+    gsock->table.add(&cmd_fixdir);  // 16
     gsock->table.add(&cmd_freeme);  // 17
     gsock->table.add(&cmd_unknown); // 18
     gsock->table.add(&cmd_unknown); // 19

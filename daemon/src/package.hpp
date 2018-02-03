@@ -93,7 +93,9 @@ public:
         DependencieBadVersion
     };
     Errors thiserr;
+    std::string pkg;
     package_exception(Errors err);
+    package_exception(Errors err,const std::string& pkg);
     virtual const char* what() const noexcept;
 };
 

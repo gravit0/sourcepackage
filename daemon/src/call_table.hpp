@@ -14,7 +14,8 @@ struct message_result
         ERROR_DEPNOTFOUND = 2,
         ERROR_PKGNOTFOUND = 3,
         ERROR_PKGINCORRECT = 4,
-        ERROR_CMDINCORRECT = 5
+        ERROR_CMDINCORRECT = 5,
+        ERROR_PKGALREADYLOADED = 6
     };
 };
 struct message_error : public message_result
@@ -35,5 +36,6 @@ public:
         return table[index](arg1,arg2);
     }
     bool realloc(unsigned int newsize);
+    ~CallTable();
 };
 #endif

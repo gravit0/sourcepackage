@@ -226,8 +226,8 @@ int main(int argc, char** argv) {
         }
         push_cmds();
         gsock->loop();
-    } catch (socket_exception e) {
-        logger->logg('C', "An exception was thrown out. Information: " + std::string(e.what()));
+    } catch (socket_exception* e) {
+        logger->logg('C', "An exception was thrown out. Information: " + std::string(e->what()));
         perror("[C] Failed reason:");
         exit(-1);
     }

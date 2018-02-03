@@ -13,7 +13,7 @@ struct connect_st* sp_connect_alloc(int bufsize)
     st->buf = malloc(bufsize * sizeof(char));
     return st;
 }
-struct ptr_and_size* source_of_package_alloc(unsigned char cmd,unsigned short flags,unsigned int cmdflags,unsigned int size)
+struct ptr_and_size* sp_alloc(unsigned char cmd,unsigned short flags,unsigned int cmdflags,unsigned int size)
 {
     struct message_head* head = malloc(sizeof(struct message_head));
     head->size = 0;
@@ -25,7 +25,7 @@ struct ptr_and_size* source_of_package_alloc(unsigned char cmd,unsigned short fl
     result->size = sizeof(struct message_head);
     return result;
 }
-struct ptr_and_size source_of_package_one_command(unsigned int cmd)
+struct ptr_and_size sp_cmd(unsigned int cmd)
 {
     struct message_head* head = malloc(sizeof(struct message_head));
     head->size = 0;
@@ -37,7 +37,7 @@ struct ptr_and_size source_of_package_one_command(unsigned int cmd)
     result.size = sizeof(struct message_head);
     return result;
 }
-struct ptr_and_size source_of_package_one_command_flags(unsigned int cmd,unsigned int cmdflags)
+struct ptr_and_size sp_cmdf(unsigned int cmd,unsigned int cmdflags)
 {
     struct message_head* head = malloc(sizeof(struct message_head));
     head->size = 0;
@@ -49,7 +49,7 @@ struct ptr_and_size source_of_package_one_command_flags(unsigned int cmd,unsigne
     result.size = sizeof(struct message_head);
     return result;
 }
-struct ptr_and_size source_of_package_one_command_parametr(unsigned int cmd,char* str)
+struct ptr_and_size sp_cmdp(unsigned int cmd,char* str)
 {
     int lsize;
     struct message_head* head;
@@ -65,7 +65,7 @@ struct ptr_and_size source_of_package_one_command_parametr(unsigned int cmd,char
     result.size = sizeof(struct message_head) + lsize;
     return result;
 }
-struct ptr_and_size source_of_package_one_command_parametr_flags(unsigned int cmd,char* str,unsigned int cmdflags)
+struct ptr_and_size sp_cmdpf(unsigned int cmd,char* str,unsigned int cmdflags)
 {
     int lsize;
     struct message_head* head;
@@ -81,7 +81,7 @@ struct ptr_and_size source_of_package_one_command_parametr_flags(unsigned int cm
     result.size = sizeof(struct message_head) + lsize;
     return result;
 }
-struct ptr_and_size source_of_package_one_command_parametr_flags_size(unsigned int cmd,char* str,unsigned int cmdflags,unsigned int lsize)
+struct ptr_and_size sp_cmdpfs(unsigned int cmd,char* str,unsigned int cmdflags,unsigned int lsize)
 {
     struct message_head* head;
     head = malloc(sizeof(struct message_head) + lsize);
@@ -95,32 +95,16 @@ struct ptr_and_size source_of_package_one_command_parametr_flags_size(unsigned i
     result.size = sizeof(struct message_head) + lsize;
     return result;
 }
-struct ptr_and_size sp_install(char* package)
-{
-    return source_of_package_one_command_parametr(install,package);
-}
-struct ptr_and_size sp_remove(char* package)
-{
-    return source_of_package_one_command_parametr(cmds_remove,package);
-}
-struct ptr_and_size sp_setconfig(char* file)
-{
-    return source_of_package_one_command_parametr(setconfig,file);
-}
-struct ptr_and_size sp_fixdir()
-{
-    return source_of_package_one_command(fixdir);
-}
-void source_of_package_freeptr(struct ptr_and_size* data) 
+void sp_freeptr(struct ptr_and_size* data)
 {
     free(data->ptr);
     free(data);
 }
-void source_of_package_free(struct ptr_and_size data) 
+void sp_free(struct ptr_and_size data)
 {
     free(data.ptr);
 }
-int sp_connect(char* path,struct connect_st* st)
+int sp_connect(struct connect_st* st,char* path)
 {
     int connect_res = 0;
     st->sock = 0;
@@ -141,19 +125,18 @@ int sp_connect(char* path,struct connect_st* st)
 int sp_close(struct connect_st* st)
 {
     int val = close(st->sock);
-    sp_connect_free(st);
     return val;
 }
-int sp_push_command(struct ptr_and_size* data,struct connect_st* st)
+int sp_push_command(struct connect_st* st,struct ptr_and_size data)
 {
-    int val = -3;
+    int val = 0;
+    struct message_result* result;
     if(st->sock <= 0) return -2;
-    send(st->sock,data->ptr,data->size,0);
+    send(st->sock,data.ptr,data.size,0);
     st->buf[0] = '\0';
     st->readed = recv(st->sock,st->buf,SOCK_BUF,0);
-    if(st->buf[0] == '0') val=0;
-    else val=-1;
-    source_of_package_free(*data);
+    result = (struct message_result*) st->buf;
+    val=result->code;
     return val;
 }
 struct ptr_and_size sp_get_error(struct connect_st* st)

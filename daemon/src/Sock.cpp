@@ -32,13 +32,13 @@ Sock::Sock(std::string filepath, int max_connect) : table((unsigned int)cmds::MA
     loopEnable = false;
     sock_ = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_ < 0) {
-        throw socket_exception(socket_exception::SocketError);
+        throw new socket_exception(socket_exception::SocketError);
     }
     srvr_name.sun_family = AF_UNIX;
     filename_c = filepath.c_str();
     strcpy(srvr_name.sun_path, filename_c);
     if (bind(sock_, (sockaddr*) & srvr_name, sizeof (srvr_name)) < 0) {
-        throw socket_exception(socket_exception::BindError);
+        throw new socket_exception(socket_exception::BindError);
     }
     listen(sock_, max_connect - 1);
 }
@@ -144,7 +144,7 @@ int Sock::exec(char* data, unsigned int size,Client* t)
     }
     auto result = table.table[head->cmd](head->cmdflags,cmd);
     t->write(result);
-    if(result.second == sizeof(message_head))
+    if(result.second == sizeof(message_result))
     {
         delete static_cast<message_head*>(result.first);
     }

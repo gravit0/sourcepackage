@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-/* 
+/*
  * File:   fswclient.cpp
  * Author: gravit
  *
@@ -24,45 +24,17 @@
 #include <vector>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "libsp.hpp"
+#include "libsp_callmap.hpp"
+#include <ncurses.h>
+#undef OK
 #define SOCK_NAME sock_path
 #define BUF_SIZE 256
-
-std::vector<std::string> split(const std::string cmd, const char splitchar) {
-    int opos = 0;
-    std::vector<std::string> list;
-    while (true) {
-        bool tr = false;
-        int pos = findNoSlash(cmd, splitchar, opos, &tr);
-        if (pos <= 0) {
-            std::string value = cmd.substr(opos, pos - cmd.size());
-            if (tr) SlashReplace(&value, 0);
-            list.push_back(value);
-            break;
-        }
-        std::string value = cmd.substr(opos, pos - opos);
-        list.push_back(value);
-        opos = pos + 1;
-    }
-    return list;
-}
 static const char *optString = "f:";
-
-struct Args {
-    bool flagInstall = false;
-    bool flagRemove = false;
-    bool flagLoad = false;
-    bool flagGetpack = false;
-    bool flagStop = false;
-    bool flagSetConfig = false;
-    std::string pkgname;
-    bool flagU = false;
-};
-
 int main(int argc, char ** argv) {
     int opt = getopt(argc, argv, optString);
     char sock_path[BUF_SIZE];
     strcpy(sock_path,"/run/sp");
-    Args args;
     int init_path = 0;
     char buf[BUF_SIZE];
     buf[0] = 0;
@@ -96,9 +68,7 @@ int main(int argc, char ** argv) {
         exit(2);
     }
     char* input, shell_prompt[100];
-    send(sock, "freeme", 6, 0);
     buf[0] = '\0';
-    recv(sock, buf, sizeof (buf), 0);
     for(;;)
     {
         // getting the current user 'n path
@@ -113,21 +83,82 @@ int main(int argc, char ** argv) {
         rl_bind_key('\t', rl_complete);
         // adding the previous input into history
         add_history(input);
-        send(sock, input, strlen(input), 0);
+        message_head head;
+        head.size = 0;
+        head.cmd = 0;
+        std::string inputstr(input);
+        std::string arg;
+        int pos = inputstr.find(' ');
+        if(pos >= 0)
+        {
+            arg = inputstr.substr(pos + 1);
+            inputstr = inputstr.substr(0,pos);
+        }
+        for(int i=0;i<cmds::MAX_COMMANDS;++i)
+        {
+            if(callmap[i] == inputstr)
+            {
+                head.cmd = i;
+                break;
+            }
+        }
+        void* sendbuf;
+        int sendsize;
+        if(arg.empty())
+        {
+            sendbuf = &head;
+            sendsize = sizeof(head);
+        }
+        else{
+            sendbuf = new char[sizeof(head) + arg.size()];
+            head.size = arg.size();
+            memcpy(sendbuf,&head,sizeof(head));
+            memcpy((char*)sendbuf + sizeof(head),input + inputstr.size() + 1,arg.size());
+            sendsize = sizeof(head) + arg.size();
+        }
+        send(sock, sendbuf, sendsize, 0);
         buf[0] = '\0';
         int res = recv(sock, buf, sizeof (buf), 0);
         if(res < 0) {
             free(input);
             break;
         }
-        if (buf[0] != '\0') {
-            std::string cmd(buf);
-            std::vector<std::string> args = split(cmd, ' ');
-            if (args[0] == "0" && args.size() == 1) goto freeinput;
-            std::cout << cmd << std::endl;
+        if(res < (signed int) sizeof(message_result))
+        {
+            std::cout << "Unknown result. Size: " << res << std::endl;
+            free(input);
+            break;
         }
-        /* do stuff */
-        freeinput:
+        message_result* result = (message_result*)buf;
+        if(result->code != message_result::OK)
+        {
+            if(result->code == message_result::ERROR_PKGNOTFOUND) std::cerr << "Ошибка: пакет не найден" << std::endl;
+            else if(result->code == message_result::ERROR_DEPNOTFOUND) std::cerr << "Ошибка: зависимость в пакете не найдена" << std::endl;
+            else if(result->code == message_result::ERROR_CMDINCORRECT) std::cerr << "Ошибка: комманда не существует или не поддерживается" << std::endl;
+            else std::cerr << "Ошибка " << result->code << std::endl;
+        }
+        else if(head.cmd == cmds::stop)
+        {
+            free(input);
+            break;
+        }
+        else if(head.cmd == cmds::getpacks && result->size > 0)
+        {
+            char* it = buf + sizeof(message_result);
+            int len = 0;
+            while(it < buf +  result->size)
+            {
+                len = strlen(it);
+                std::cout << "\x1b[33m" << std::string(it,len) << "\x1b[0m\t";
+                if(len < 8) std::cout << "\t";
+                unsigned char flag = it[len+1];
+                if(flag & 1 << 0) std::cout << "\x1b[32m"  << "[installed]" << "\x1b[0m";
+                if(flag & 1 << 1) std::cout << "\x1b[31m"  << "[zombie]"  << "\x1b[0m";
+                if(flag & 1 << 2) std::cout << "\x1b[36m"  << "[dep]"  << "\x1b[0m";
+                std::cout << std::endl;
+                it+=len+2;
+            }
+        }
         // Т.к. вызов readline() выделяет память, но не освобождает(а возвращает), то эту память нужно вернуть(освободить).
         free(input);
     }

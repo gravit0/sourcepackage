@@ -1,37 +1,63 @@
-struct message_head;
-struct ptr_and_size;
-enum cmds
+struct message_result
 {
-    cmds_install = 1,
-    cmds_remove = 2,
-    cmds_load = 3,
-    cmds_unload = 4,
-    cmds_stop = 5,
-    cmds_getpacks = 6,
-    cmds_setconfig = 7,
-    cmds_findfile = 8,
-    cmds_exportfiles = 9,
-    cmds_packinfo = 10,
-    cmds_unloadall = 11,
-    cmds_reload = 12,
-    cmds_reloadall = 13,
-    cmds_updateall = 14,
-    cmds_config = 15,
-    cmds_fixdir = 16,
-    cmds_freeme = 17,
-    cmds_add_listener = 18,
-    cmds_remove_listener = 19,
+    unsigned char version;
+    unsigned char code;
+    signed short flag; //Зарезервировано
+    unsigned int size;
+    enum : unsigned char{
+        OK = 0,
+        ERROR_FILENOTFOUND = 1,
+        ERROR_DEPNOTFOUND = 2,
+        ERROR_PKGNOTFOUND = 3,
+        ERROR_PKGINCORRECT = 4,
+        ERROR_CMDINCORRECT = 5
+    };
+};
+
+namespace cmds
+{
+enum : unsigned char
+{
+    install = 1,
+    remove = 2,
+    load = 3,
+    unload = 4,
+    stop = 5,
+    getpacks = 6,
+    setconfig = 7,
+    findfile = 8,
+    exportfiles = 9,
+    packinfo = 10,
+    unloadall = 11,
+    reload = 12,
+    reloadall = 13,
+    updateall = 14,
+    config = 15,
+    fixdir = 16,
+    freeme = 17,
+    add_listener = 18,
+    remove_listener = 19,
     MAX_COMMANDS = 20
 };
-enum flags {
-   multiparams = 1 >> 0,
-   old_command = 1 >> 1,
-   fullpath = 1 >> 2
-};
-enum flags_install{
+}
+namespace flags
+{
+    enum : unsigned short{
+        multiparams = 1 >> 0,
+        old_command = 1 >> 1
+    };
+}
+namespace cmdflags{
+namespace install
+{
+    enum : unsigned int{
         nodep = 1 >> 0,
-        fakeinstall = 1 << 1
-};
+        fakeinstall = 1 << 1,
+        full_path = 1 << 2
+    };
+}
+}
+
 struct message_head
 {
     unsigned char version;
@@ -58,22 +84,9 @@ struct connect_st
     int readed;
     char* buf;
 };
-enum RETS {
-    RET_OK = 0,
-    RET_ERROR_FILENOTFOUND = 1,
-    RET_ERROR_DEPNOTFOUND = 2,
-    RET_ERROR_PKGNOTFOUND = 3,
-    RET_ERROR_PKGINCORRECT = 4,
-    RET_ERROR_CMDINCORRECT = 5
-};
-struct message_result
+extern "C"
 {
-    unsigned char version;
-    unsigned char code;
-    signed short flag; //Зарезервировано
-    unsigned int size;
-};
-extern struct ptr_and_size* sp_alloc(unsigned char cmd,unsigned short flags,unsigned int cmdflags,unsigned int size);
+extern struct ptr_and_size* source_of_package_alloc(unsigned char cmd,unsigned short flags,unsigned int cmdflags,unsigned int size);
 extern struct connect_st* sp_connect_alloc(int bufsize);
 extern void sp_connect_free(struct connect_st* st);
 extern struct ptr_and_size sp_cmd(unsigned int cmd);
@@ -87,3 +100,4 @@ extern int sp_connect(struct connect_st* st,char* path);
 extern int sp_push_command(struct connect_st* st,struct ptr_and_size data);
 extern struct ptr_and_size sp_get_error(struct connect_st* st);
 extern int sp_close(struct connect_st* st);
+}

@@ -28,3 +28,7 @@ bool CallTable::realloc(unsigned int newsize)
     size = newsize;
     return true;
 }
+CallTable::~CallTable()
+{
+    delete[] table;
+}
