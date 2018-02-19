@@ -18,7 +18,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 using namespace std;
 std::mutex pack_mutex;
-std::list<Package*> packs;
+std::map<std::string, Package*> packs;
 Configuration cfg;
 Logger * logger;
 Sock* gsock;
@@ -229,11 +229,12 @@ int main(int argc, char** argv) {
     } catch (socket_exception* e) {
         logger->logg('C', "An exception was thrown out. Information: " + std::string(e->what()));
         perror("[C] Failed reason:");
+        delete e;
         exit(-1);
     }
     delete gsock;
     for (auto i = packs.begin(); i != packs.end(); ++i) {
-        delete(*i);
+        delete (*i).second;
     }
     delete logger;
     return 0;

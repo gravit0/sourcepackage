@@ -36,19 +36,22 @@ std::pair<void*,size_t> cmd_getpacks(unsigned int, std::string)
     int bufsize = 0;
     for (auto& i : packs)
     {
-        bufsize+=i->name.size() + 2;
+        bufsize+=i.first.size() + 2;
     }
     buf= new char[bufsize + sizeof(message_result)];
     char* it = buf  + sizeof(message_result);
     for (auto& i : packs)
     {
-        char* c_str = i->name.data();
-        int str_size = i->name.size();
+        Package* p = i.second;
+        std::cerr << "PKG " << p->name << std::endl;
+        char* c_str = p->name.data();
+        int str_size = p->name.size();
         memcpy(it+1,c_str,str_size);
         it[str_size+1] = 0;
-        *it = (i->isInstalled << 0) | (i->isStartInstall << 1) | (i->isDependence << 2);
+        *it = (p->isInstalled << 0) | (p->isStartInstall << 1) | (p->isDependence << 2);
         it+=str_size + 2;
-    }std::cerr << "PKGLIST" << std::endl;
+    }
+    std::cerr << "PKGLIST " << packs.size() << std::endl;
     message_result* m_result = (message_result*) buf;
     m_result->version = 0;
     m_result->code = message_result::OK;
@@ -148,14 +151,9 @@ std::pair<void*,size_t> cmd_load(unsigned int, std::string pckname) // Уста�
 std::pair<void*,size_t> cmd_unload(unsigned int, std::string pckname) // Устаревшее
 {
     message_result* result = new message_result{0,message_result::OK,0,0};
-    Package* pck = Package::find(pckname);
-    if(pck == nullptr)
-    {
-        result->code = message_result::ERROR_PKGNOTFOUND;
-        return {result,sizeof(result)};
-    }
+    Package* pck = packs[pckname];
     delete pck;
-    packs.remove(pck);
+    packs.erase(pckname);
     return {result,sizeof(result)};
 }
 std::pair<void*,size_t> cmd_setconfig(unsigned int, std::string cfgdir)
@@ -201,14 +199,15 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         Package* resultpck = nullptr;
         for (auto &i : packs) {
             isBreak = false;
-            for (auto&j : i->files) {
+            Package* p = i.second;
+            for (auto&j : p->files) {
                 if (j.filename == filename) {
                     isBreak = true;
                     break;
                 }
             }
             if (isBreak) {
-                resultpck = i;
+                resultpck = p;
                 break;
             }
         }
@@ -219,9 +218,10 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         std::fstream f;
         f.open(filename,std::ios_base::out);
         for (auto &i : packs) {
-            for (auto&j : i->files) {
-                f << i->name + " " + j.filename << std::endl;
-            }
+                Package* p = i.second;
+                for (auto&j : p->files) {
+                    f << p->name + " " + j.filename << std::endl;
+                }
         }
         f.close();
         sock->write("0");
@@ -258,24 +258,7 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         event.removeListener(sock);
         sock->write("0");
         sock->isAutoClosable = true;
-    } else if (head->cmd == cmds::unload) {
-        std::string pckdir = args[0];
-        Package* pck = Package::find(pckdir);
-        delete pck;
-        packs.remove(pck);
-        sock->write("0");
-    } else if (head->cmd == cmds::unloadall) {
-        for (auto i = packs.begin(); i != packs.end(); ++i) {
-            delete(*i);
-        }
-        packs.clear();
-        sock->write("0");
-    } else if (head->cmd == cmds::reloadall) {
-        for (auto& i : packs) {
-            Package::read_pack(i->dir, i);
-        }
-        sock->write("0");
-    } else if (head->cmd == cmds::reload) {
+    }  else if (head->cmd == cmds::reload) {
         std::string pckname = args[0];
         Package* pck = Package::find(pckname);
         if (pck == nullptr) {
@@ -284,18 +267,6 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         }
         Package::read_pack(pck->dir, pck);
         sock->write("0");
-    } else if (head->cmd == cmds::updateall) {
-        for (auto& i : packs) {
-            Package_Version oldver = i->version;
-            i->clear();
-            Package::read_pack(i->dir, i);
-            if (i->version > oldver) {
-
-                i->isInstalled = false;
-                i->install(Package::flag_update);
-            }
-        }
-        sock->write("0");
     } else if (head->cmd == cmds::config) {
         std::string param = args[0];
         std::string value = args[1];
@@ -303,17 +274,6 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         else if (param == "packsdir") cfg.packsdir = value;
         else if (param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
         sock->write("0");
-    } else if (head->cmd == cmds::getpacks) {
-        std::string reply = "0 ";
-        for (auto& i : packs) {
-            reply += i->name;
-            reply += ":";
-            if (i->isInstalled) reply += "i";
-            if (i->isDependence) reply += "d";
-            if (i->isDaemon) reply += "D";
-            reply += ' ';
-        }
-        sock->write(reply);
     } else if (head->cmd == cmds::setconfig) {
 
     } else if (head->cmd == cmds::stop) {

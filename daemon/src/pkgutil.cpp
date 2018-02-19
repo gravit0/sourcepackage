@@ -4,21 +4,16 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <iostream>
 Package* Package::find(const std::string& name) {
-    for (auto i = packs.begin(); i != packs.end(); ++i) {
-        if ((*i)->name == name) return (*i);
-    }
-    return nullptr;
+    auto i = packs.find(name);
+    if(i == packs.end()) return nullptr;
+    return i->second;
 }
 
 Package* Package::unload(const std::string& name) {
 
-    for (auto i = packs.begin(); i != packs.end(); ++i) {
-        if ((*i)->name == name) {
-            packs.erase(i);
-            delete (*i);
-        }
-    }
-
+    auto i = packs.find(name);
+    delete (*i).second;
+    packs.erase(i);
     return nullptr;
 }
 
@@ -105,7 +100,7 @@ Package* Package::get(const std::string dir) {
             delete pack;
             return nullptr;
     }
-    packs.push_back(pack);
+    packs[pack->name] = pack;
     return pack;
 }
 

@@ -144,6 +144,7 @@ int main(int argc, char ** argv) {
         }
         else if(head.cmd == cmds::getpacks && result->size > 0)
         {
+            std::cerr << "T2" << std::endl;
             char* it = buf + sizeof(message_result);
             int len = 0;
             while(it < buf +  result->size)
