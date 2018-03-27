@@ -37,7 +37,9 @@ enum : unsigned char
     freeme = 17,
     add_listener = 18,
     remove_listener = 19,
-    MAX_COMMANDS = 20
+    setns = 20,
+    loadmodule = 21,
+    MAX_COMMANDS = 22
 };
 }
 namespace flags

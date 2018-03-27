@@ -20,5 +20,7 @@ static std::vector<std::string> callmap
     "fixdir",
     "freeme",
     "add_listener",
-    "remove_listener"
+    "remove_listener",
+    "setns",
+    "loadmodule"
 };

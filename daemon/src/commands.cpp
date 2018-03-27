@@ -15,7 +15,10 @@
 #include <sstream>
 #include <iostream>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fstream>
+#include <fcntl.h>
+#include <dlfcn.h>
 
 std::pair<void*,size_t> cmd_unknown(unsigned int, std::string)
 {
@@ -59,6 +62,52 @@ std::pair<void*,size_t> cmd_getpacks(unsigned int, std::string)
     m_result->size = bufsize;
     return {buf,bufsize + sizeof(message_result)};
 }
+std::pair<void*,size_t> cmd_setns(unsigned int flag, std::string file)
+{
+    message_result* result = new message_result{0,message_result::OK,0,0};
+    int fd = open(file.c_str(),O_RDONLY);
+    setns(fd,0);
+    close(fd);
+    chdir("/");
+    return {result,sizeof(result)};
+};
+struct _module_version
+{
+    unsigned int version;
+    unsigned int api;
+};
+struct _module_api
+{
+    CallTable::CallCell* calltable;
+};
+_module_api module_api;
+bool module_api_init = false;
+std::pair<void*,size_t> cmd_loadmodule(unsigned int flag, std::string file)
+{
+    if(!module_api_init)
+    {
+        module_api.calltable = gsock->table.table;
+        module_api_init = true;
+    }
+    message_result* result = new message_result{0,message_result::OK,0,0};
+    void* fd = dlopen(file.c_str(), RTLD_LAZY);
+    if(fd == NULL) {
+        perror("[MODULE ERROR]");
+        return {result,sizeof(result)};
+    }
+    _module_version (*sp_module_init)(_module_api);
+    void (*sp_module_main)();
+    sp_module_init = (_module_version (*)(_module_api))dlsym(fd,"sp_module_init");
+    _module_version v = sp_module_init(module_api);
+    if(v.api != 1)
+    {
+        std::cerr << "[MODULE] Unsupported API version: " << v.api << std::endl;
+        return {result,sizeof(result)};
+    }
+    sp_module_main = (void (*)())dlsym(fd,"sp_module_call_main");
+    sp_module_main();
+    return {result,sizeof(result)};
+};
 std::pair<void*,size_t> cmd_install(unsigned int flag, std::string pckname)
 {
     message_result* result = new message_result{0,message_result::OK,0,0};
@@ -187,6 +236,8 @@ void push_cmds()
     gsock->table.add(&cmd_freeme);  // 17
     gsock->table.add(&cmd_unknown); // 18
     gsock->table.add(&cmd_unknown); // 19
+    gsock->table.add(&cmd_setns);  // 20
+    gsock->table.add(&cmd_loadmodule);  // 20
 }
 void cmd_exec(message_head* head, std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
