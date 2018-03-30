@@ -49,16 +49,16 @@ void Package::install(unsigned int flags) {
     if (!dependencies.empty()) {
         if (!(flags & flag_nodep))
             for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
-                Package::ptr dep = Package::find((*i).name);
-                if (dep == nullptr) dep = Package::get(cfg.packsdir + (*i).name);
-                if (dep == nullptr) {
+                auto dep = Package::find((*i).name);
+                if (!dep) dep = Package::get(cfg.packsdir + (*i).name);
+                if (!dep) {
                     isStartInstall = false;
                     throw new package_exception(package_exception::DependencieNotFound,(*i).name);
                     return;
                 }
-                dep->install();
-                dep->isDependence = true;
-                dep->dependencie.push_back(dep);
+                (*dep)->install();
+                (*dep)->isDependence = true;
+                (*dep)->dependencie.push_back(*dep);
             }
     }
     if (!(flags & Package::flag_fakeInstall))
@@ -151,23 +151,24 @@ void Package::remove() {
     }
     isInstalled = false;
     isDependence = false;
-    if (!dependencies.empty()) {
-        for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
-            Package::ptr dep = Package::find((*i).name);
-            if (dep == nullptr) dep = Package::get((*i).name);
-            if (dep->isDependence) {
-                for (auto j = dep->dependencie.begin(); j != dep->dependencie.end(); ++j) {
-                    if ((*j).get() == this) {
-                        dep->dependencie.erase(j);
-                        break;
-                    };
-                }
-                if (dep->dependencie.size() == 0) {
-                    dep->remove();
-                }
+    // TODO: FIX
+    //if (!dependencies.empty()) {
+    //    for (auto i = dependencies.begin(); i != dependencies.end(); ++i) {
+    //        auto dep = Package::find((*i).name);
+    //        if (!dep) dep = Package::get((*i).name);
+    //        if (dep->isDependence) {
+    //            for (auto j = dep->dependencie.begin(); j != dep->dependencie.end(); ++j) {
+    //                if ((*j).get() == this) {
+    //                    dep->dependencie.erase(j);
+    //                    break;
+    //                };
+    //            }
+    //            if (dep->dependencie.size() == 0) {
+    //                dep->remove();
+    //            }
                 //dep->dependencie.erase(std::find<std::list<Package::ptr>::iterator,Package::ptr>(dep->dependencie.begin(),dep->dependencie.end(),this));
-            }
-        }
-    }
+     //       }
+     //   }
+    //}
 
 }

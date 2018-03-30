@@ -3,9 +3,10 @@
 #include "util.hpp"
 #include <boost/property_tree/ini_parser.hpp>
 #include <iostream>
-Package::ptr Package::find(const std::string& name) {
+using namespace std;
+std::optional<Package::ptr> Package::find(const std::string& name) {
     auto i = packs.find(name);
-    if(i == packs.end()) return nullptr;
+    if(i == packs.end()) return nullopt;
     return i->second;
 }
 
@@ -93,10 +94,10 @@ int Package::read_pack(const std::string dir, Package::ptr pack) {
     return ret;
 }
 
-Package::ptr Package::get(const std::string dir) {
+std::optional<Package::ptr> Package::get(const std::string dir) {
     Package::ptr pack = std::shared_ptr<Package>(new Package);
     if (Package::read_pack(dir, pack) != 0) {
-            return nullptr;
+            return nullopt;
     }
     packs[pack->name] = pack;
     return pack;

@@ -19,6 +19,8 @@
 #include <fstream>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <chrono>
+#include <thread>
 
 CallTable::CmdResult cmd_unknown(unsigned int, std::string)
 {
@@ -107,11 +109,12 @@ CallTable::CmdResult cmd_loadmodule(unsigned int, std::string file)
 };
 CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 {
+    using namespace std::chrono_literals;
     try {
-        Package::ptr pck = Package::find(pckname);
+        auto pck = Package::find(pckname);
         std::cout << "FLAG:" << flag << std::endl;
         unsigned int flags = 0;
-        if (pck == nullptr)
+        if (!pck)
         {
             std::cerr << cfg.packsdir + pckname << std::endl;
             /*if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
@@ -124,8 +127,8 @@ CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
         }
         if (flag & cmdflags::install::fakeinstall) flags |= Package::flag_fakeInstall;
         if (flag & cmdflags::install::nodep) flags |= Package::flag_nodep;
-        pck->install(flags);
-        event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));
+        (*pck)->install(flags);
+        //event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
     catch (package_exception* err)
     {
@@ -137,15 +140,16 @@ CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
         return CallTable::CmdResult(errcode);
     }
     std::cerr << "INSTALL CMD" << std::endl;
+    std::this_thread::sleep_for(20s);
     return CallTable::CmdResult(message_result::OK);
 }
 CallTable::CmdResult cmd_remove(unsigned int, std::string pckname)
 {
-    Package::ptr pck = Package::find(pckname);
-    if (pck != nullptr)
+    auto pck = Package::find(pckname);
+    if (pck)
     {
-        pck->remove();
-        event.sendEvent(EventListener::EVENT_REMOVE, pck->dir + " " + (pck->isDaemon ? "d" : ""));
+        (*pck)->remove();
+        //event.sendEvent(EventListener::EVENT_REMOVE, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
     else {
         return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
@@ -163,8 +167,8 @@ CallTable::CmdResult cmd_fixdir(unsigned int, std::string)
 }
 CallTable::CmdResult cmd_packinfo(unsigned int, std::string pckname)
 {
-    Package::ptr pck = Package::find(pckname);
-    if (pck == nullptr)
+    auto pck = Package::find(pckname);
+    if (!pck)
     {
         return CallTable::CmdResult(message_result::OK);
     }
@@ -172,14 +176,14 @@ CallTable::CmdResult cmd_packinfo(unsigned int, std::string pckname)
 }
 CallTable::CmdResult cmd_load(unsigned int, std::string pckname)
 {
-    Package::ptr pck = Package::find(pckname);
-    if(pck != nullptr)
+    auto pck = Package::find(pckname);
+    if(!pck)
     {
         return CallTable::CmdResult(message_result::ERROR_PKGALREADYLOADED);
     }
     else{
-        Package::ptr pck = Package::get(pckname);
-        if(pck == nullptr)
+        auto pck = Package::get(pckname);
+        if(!pck)
         {
             return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
         }
@@ -224,6 +228,7 @@ void push_cmds()
     gsock->table.add(&cmd_setns);  // 20
     gsock->table.add(&cmd_loadmodule);  // 20
 }
+/*
 void cmd_exec(message_head* head, std::string cmd, Client* sock) {
     std::vector<std::string> args = split(cmd, ' ');
     std::string basecmd = args[0];
@@ -321,3 +326,4 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
 ifend:
     ;
 }
+*/

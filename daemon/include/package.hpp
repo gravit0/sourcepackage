@@ -78,10 +78,10 @@ public:
     void remove();
     void toIni(std::string dir);
     void clear();
-    static Package::ptr find(const std::string& name);
+    static std::optional<Package::ptr> find(const std::string& name);
     static Package::ptr unload(const std::string& name);
     static int read_pack(const std::string dir, Package::ptr pack);
-    static Package::ptr get(const std::string dir);
+    static std::optional<Package::ptr> get(const std::string dir);
     static std::mutex mutex;
 };
 

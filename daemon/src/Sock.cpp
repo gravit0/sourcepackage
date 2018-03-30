@@ -71,7 +71,11 @@ void Sock::loop() {
     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
     ev.data.fd = sock_;
     epoll_ctl(epollsock, EPOLL_CTL_ADD, sock_, &ev);
+    loop_impl(multithread_loop::MASTER);
+}
 
+
+void Sock::loop_impl(multithread_loop l) {
     while (loopEnable) {
         int t = wait(cfg.epoll_timeout);
         if (t < 0) {

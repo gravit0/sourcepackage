@@ -108,9 +108,15 @@ private:
     int max_connect;
     epoll_event* events;
 public:
+    enum class multithread_loop
+    {
+        MASTER,
+        SLAVE
+    };
     CallTable table;
     Sock(std::string filepath, int max_connect);
     void loop();
+    void loop_impl(multithread_loop l);
     int exec(char* data, unsigned int size,Client* t);
     int deattach();
     void stop();

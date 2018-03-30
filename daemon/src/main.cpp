@@ -167,14 +167,14 @@ int main(int argc, char** argv) {
         auto list = split(cfg.autoinstall, ':');
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
-            Package::ptr pck = Package::find(pckname);
-            if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
-            if (pck == nullptr) {
+            auto pck = Package::find(pckname);
+            if (!pck) pck = Package::get(cfg.packsdir + pckname);
+            if (!pck) {
                 logger->logg('E', "package " + pckname + " not found");
                 continue;
             }
-            std::cerr << "Autoinstall " << pck->name << std::endl;
-            pck->install();
+            std::cerr << "Autoinstall " << pckname << std::endl;
+            (*pck)->install();
         }
     }
     //Check privileges
@@ -225,7 +225,14 @@ int main(int argc, char** argv) {
             } else cfg.security.pid = getpid();
         }
         push_cmds();
+        std::thread th([]{
+            std::cerr << "THREAD RUN" << std::endl;
+            gsock->loop_impl(Sock::multithread_loop::SLAVE);
+            std::cerr << "THREAD END" << std::endl;
+        }
+        );
         gsock->loop();
+        th.join();
     } catch (socket_exception* e) {
         logger->logg('C', "An exception was thrown out. Information: " + std::string(e->what()));
         perror("[C] Failed reason:");
