@@ -19,7 +19,7 @@ Package::ptr Package::unload(const std::string& name) {
 
 int Package::read_pack(const std::string dir, Package::ptr pack) {
     int state = 0;
-    auto lam = [&,pack](std::string first,std::string last,std::string category,bool isSet) {
+    auto lam = [&,pack](std::string_view first, std::string_view last, std::string_view category, bool isSet) {
         if(isSet) {
             if(category == "package") state = 0;
             else if(category == "data") state = 1;
@@ -29,7 +29,7 @@ int Package::read_pack(const std::string dir, Package::ptr pack) {
         if(state==1)
         {
             FileAction t;
-            std::vector<std::string> v = split(last, ':');
+            std::vector<std::string_view> v = split(last, ':');
             int offset= 0;
             if (v[0] == "l") t.action = FileAction::LINK;
             else if (v[0] == "f") t.action = FileAction::FILE;
@@ -47,13 +47,13 @@ int Package::read_pack(const std::string dir, Package::ptr pack) {
             else t.action = FileAction::FILE;
             int size=v.size();
             if (size >= offset+2) {
-                t.mode = std::stoi(v[offset+1]);
+                t.mode = std::stoi(std::string(v[offset+1]));
             } else t.mode = -1;
             if (size >= offset+3) {
-                t.group = std::stoi(v[offset+2]);
+                t.group = std::stoi(std::string(v[offset+2]));
             } else t.group = -1;
             if (size >= offset+4) {
-                t.owner = std::stoi(v[offset+3]);
+                t.owner = std::stoi(std::string(v[offset+3]));
             } else t.owner = -1;
             t.filename = first;
             pack->files.push_back(t);
@@ -77,7 +77,7 @@ int Package::read_pack(const std::string dir, Package::ptr pack) {
                         if(pos<0) dep.name = i;
                         else {
                             dep.name = i.substr(0,pos);
-                            std::string ver = i.substr(pos+1);
+                            std::string_view ver = i.substr(pos+1);
                             dep.version.parse(ver);
                         }
                         pack->dependencies.push_back(dep);

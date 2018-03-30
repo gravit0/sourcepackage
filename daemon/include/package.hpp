@@ -38,7 +38,7 @@ struct Package_Version {
     int minor;
     int build;
     bool operator>(Package_Version ver);
-    int parse(std::string str);
+    int parse(std::string_view str);
 };
 struct Package_dependencie
 {

@@ -23,9 +23,9 @@ Configuration cfg;
 Logger * logger;
 Sock* gsock;
 int main_set_signals();
-std::vector<std::string> split(const std::string& cmd, const char splitchar) {
+std::vector<std::string_view> split(std::string_view cmd, const char splitchar) {
     int opos = 0;
-    std::vector<std::string> list;
+    std::vector<std::string_view> list;
     while (true) {
         int pos = cmd.find(splitchar, opos);
         bool isKav = false;
@@ -51,7 +51,7 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
 }
 
 int config_parse(const std::string& filename) {
-    auto lam = [](std::string frist,std::string last,std::string,bool) {
+    auto lam = [](std::string_view frist, std::string_view last, std::string_view, bool) {
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;
@@ -69,9 +69,9 @@ int config_parse(const std::string& filename) {
         } else if (frist == "ignore_low_exception") {
             cfg.isIgnoreLowException = (last == "true") ? true : false;
         } else if (frist == "max_connect") {
-            cfg.max_connect = std::stoi(last);
+            cfg.max_connect = std::stoi(std::string(last));
         } else if (frist == "epoll_timeout") {
-            cfg.epoll_timeout = std::stoi(last);
+            cfg.epoll_timeout = std::stoi(std::string(last));
         }
     };
     RecArrUtils::ini_parser_lam(filename,lam);
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
         std::cerr << "Autoinstall started..." << std::endl;
         auto list = split(cfg.autoinstall, ':');
         for (auto i = list.begin(); i != list.end(); ++i) {
-            std::string pckname = (*i);
+            std::string pckname = std::string(*i);
             auto pck = Package::find(pckname);
             if (!pck) pck = Package::get(cfg.packsdir + pckname);
             if (!pck) {

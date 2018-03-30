@@ -31,14 +31,14 @@ bool Package_Version::operator>(Package_Version ver) {
     return false;
 }
 
-int Package_Version::parse(std::string str) {
-    const char* c_str = str.c_str();
-    int pos = str.find('.');
-    major = std::stoi(std::string(c_str,pos));
-    int pos2 = str.find('.',pos+1);
-    minor = std::stoi(std::string(c_str+pos,pos-pos2));
-    int pos3 = str.find('-',pos2+1);
-    build = std::stoi(std::string(c_str+pos2,pos2-pos3));
+int Package_Version::parse([[maybe_unused]] std::string_view str) { //TODO: Realise
+    //const char* c_str = str.c_str();
+    //int pos = str.find('.');
+    //major = std::stoi(std::string(c_str,pos));
+    //int pos2 = str.find('.',pos+1);
+    //minor = std::stoi(std::string(c_str+pos,pos-pos2));
+    //int pos3 = str.find('-',pos2+1);
+    //build = std::stoi(std::string(c_str+pos2,pos2-pos3));
     return 0;
 }
 
