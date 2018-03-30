@@ -26,7 +26,7 @@
 #include <readline/history.h>
 #include "libsp.hpp"
 #include "libsp_callmap.hpp"
-#include <ncurses.h>
+#include "colors.hpp"
 #undef OK
 #define SOCK_NAME sock_path
 #define BUF_SIZE 256
@@ -69,6 +69,9 @@ int main(int argc, char ** argv) {
     }
     char* input, shell_prompt[100];
     buf[0] = '\0';
+    std::cout << COLOR_BLUE  << "Source of package" << COLOR_GREEN <<  " interactive client " << COLOR_RED << "0.1" 
+        << COLOR_GREEN <<  " api " << COLOR_RED << "1"<< COLOR_NONE << std::endl;
+    std::cout << COLOR_GREEN  << "Use " << COLOR_RED <<  "help" << COLOR_GREEN << " to list all commands" << COLOR_NONE << std::endl;
     for(;;)
     {
         // getting the current user 'n path
@@ -149,12 +152,12 @@ int main(int argc, char ** argv) {
             while(it < buf + sizeof(message_result) +  result->size - 1)
             {
                 len = strlen(it+1);
-                std::cout << "\x1b[33m" << std::string(it+1,len) << "\x1b[0m\t";
+                std::cout << "\x1b[33m" << std::string(it+1,len) << COLOR_NONE "\t";
                 if(len < 8) std::cout << "\t";
                 unsigned char flag = *it;
-                if(flag & 1 << 0) std::cout << "\x1b[32m"  << "[installed]" << "\x1b[0m";
-                if(flag & 1 << 1) std::cout << "\x1b[31m"  << "[zombie]"  << "\x1b[0m";
-                if(flag & 1 << 2) std::cout << "\x1b[36m"  << "[dep]"  << "\x1b[0m";
+                if(flag & 1 << 0) std::cout << COLOR_GREEN  << "[installed]" << COLOR_NONE;
+                if(flag & 1 << 1) std::cout << COLOR_RED  << "[zombie]"  << COLOR_NONE;
+                if(flag & 1 << 2) std::cout << COLOR_BLUE  << "[dep]"  << COLOR_NONE;
                 std::cout << std::endl;
                 it+=len+2;
             }
