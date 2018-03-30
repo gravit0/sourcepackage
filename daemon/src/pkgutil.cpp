@@ -3,21 +3,20 @@
 #include "util.hpp"
 #include <boost/property_tree/ini_parser.hpp>
 #include <iostream>
-Package* Package::find(const std::string& name) {
+Package::ptr Package::find(const std::string& name) {
     auto i = packs.find(name);
     if(i == packs.end()) return nullptr;
     return i->second;
 }
 
-Package* Package::unload(const std::string& name) {
+Package::ptr Package::unload(const std::string& name) {
 
     auto i = packs.find(name);
-    delete (*i).second;
     packs.erase(i);
     return nullptr;
 }
 
-int Package::read_pack(const std::string dir, Package* pack) {
+int Package::read_pack(const std::string dir, Package::ptr pack) {
     int state = 0;
     auto lam = [&,pack](std::string first,std::string last,std::string category,bool isSet) {
         if(isSet) {
@@ -94,10 +93,9 @@ int Package::read_pack(const std::string dir, Package* pack) {
     return ret;
 }
 
-Package* Package::get(const std::string dir) {
-    Package* pack = new Package();
+Package::ptr Package::get(const std::string dir) {
+    Package::ptr pack = std::shared_ptr<Package>(new Package);
     if (Package::read_pack(dir, pack) != 0) {
-            delete pack;
             return nullptr;
     }
     packs[pack->name] = pack;

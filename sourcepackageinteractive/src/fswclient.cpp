@@ -89,6 +89,7 @@ int main(int argc, char ** argv) {
         message_head head;
         head.size = 0;
         head.cmd = 0;
+        head.cmdflags = 0;
         std::string inputstr(input);
         std::string arg;
         int pos = inputstr.find(' ');
@@ -115,6 +116,7 @@ int main(int argc, char ** argv) {
         else{
             sendbuf = new char[sizeof(head) + arg.size()];
             head.size = arg.size();
+            head.flag = 0;
             memcpy(sendbuf,&head,sizeof(head));
             memcpy((char*)sendbuf + sizeof(head),input + inputstr.size() + 1,arg.size());
             sendsize = sizeof(head) + arg.size();

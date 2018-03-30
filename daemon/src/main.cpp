@@ -18,7 +18,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 using namespace std;
 std::mutex pack_mutex;
-std::map<std::string, Package*> packs;
+std::map<std::string, Package::ptr> packs;
 Configuration cfg;
 Logger * logger;
 Sock* gsock;
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
         auto list = split(cfg.autoinstall, ':');
         for (auto i = list.begin(); i != list.end(); ++i) {
             std::string pckname = (*i);
-            Package* pck = Package::find(pckname);
+            Package::ptr pck = Package::find(pckname);
             if (pck == nullptr) pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr) {
                 logger->logg('E', "package " + pckname + " not found");
@@ -233,9 +233,10 @@ int main(int argc, char** argv) {
         exit(-1);
     }
     delete gsock;
-    for (auto i = packs.begin(); i != packs.end(); ++i) {
-        delete (*i).second;
-    }
+    //for (auto i = packs.begin(); i != packs.end(); ++i) {
+    //    delete (*i).second;
+    //}
+    packs.clear();
     delete logger;
     return 0;
 }

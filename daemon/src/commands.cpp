@@ -44,7 +44,7 @@ CallTable::CmdResult cmd_getpacks(unsigned int, std::string)
     char* it = buf  + sizeof(message_result);
     for (auto& i : packs)
     {
-        Package* p = i.second;
+        Package::ptr p = i.second;
         std::cerr << "PKG " << p->name << std::endl;
         char* c_str = p->name.data();
         int str_size = p->name.size();
@@ -108,7 +108,8 @@ CallTable::CmdResult cmd_loadmodule(unsigned int, std::string file)
 CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 {
     try {
-        Package* pck = Package::find(pckname);
+        Package::ptr pck = Package::find(pckname);
+        std::cout << "FLAG:" << flag << std::endl;
         unsigned int flags = 0;
         if (pck == nullptr)
         {
@@ -140,7 +141,7 @@ CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 }
 CallTable::CmdResult cmd_remove(unsigned int, std::string pckname)
 {
-    Package* pck = Package::find(pckname);
+    Package::ptr pck = Package::find(pckname);
     if (pck != nullptr)
     {
         pck->remove();
@@ -162,7 +163,7 @@ CallTable::CmdResult cmd_fixdir(unsigned int, std::string)
 }
 CallTable::CmdResult cmd_packinfo(unsigned int, std::string pckname)
 {
-    Package* pck = Package::find(pckname);
+    Package::ptr pck = Package::find(pckname);
     if (pck == nullptr)
     {
         return CallTable::CmdResult(message_result::OK);
@@ -171,13 +172,13 @@ CallTable::CmdResult cmd_packinfo(unsigned int, std::string pckname)
 }
 CallTable::CmdResult cmd_load(unsigned int, std::string pckname)
 {
-    Package* pck = Package::find(pckname);
+    Package::ptr pck = Package::find(pckname);
     if(pck != nullptr)
     {
         return CallTable::CmdResult(message_result::ERROR_PKGALREADYLOADED);
     }
     else{
-        Package* pck = Package::get(pckname);
+        Package::ptr pck = Package::get(pckname);
         if(pck == nullptr)
         {
             return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
@@ -187,8 +188,6 @@ CallTable::CmdResult cmd_load(unsigned int, std::string pckname)
 }
 CallTable::CmdResult cmd_unload(unsigned int, std::string pckname)
 {
-    Package* pck = packs[pckname];
-    delete pck;
     packs.erase(pckname);
     return CallTable::CmdResult(message_result::OK);
 }
@@ -233,10 +232,10 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
     } else if (head->cmd == cmds::findfile) {
         std::string filename = args[0];
         bool isBreak;
-        Package* resultpck = nullptr;
+        Package::ptr resultpck = nullptr;
         for (auto &i : packs) {
             isBreak = false;
-            Package* p = i.second;
+            Package::ptr p = i.second;
             for (auto&j : p->files) {
                 if (j.filename == filename) {
                     isBreak = true;
@@ -255,7 +254,7 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         std::fstream f;
         f.open(filename,std::ios_base::out);
         for (auto &i : packs) {
-                Package* p = i.second;
+                Package::ptr p = i.second;
                 for (auto&j : p->files) {
                     f << p->name + " " + j.filename << std::endl;
                 }
@@ -264,7 +263,7 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         sock->write("0");
     }else if (head->cmd == cmds::packinfo) {
         std::string pckname = args[0];
-        Package* pck = Package::find(pckname);
+        Package::ptr pck = Package::find(pckname);
         if (pck == nullptr) {
             sock->write("error pkgnotfound");
             goto ifend;
@@ -297,7 +296,7 @@ void cmd_exec(message_head* head, std::string cmd, Client* sock) {
         sock->isAutoClosable = true;
     }  else if (head->cmd == cmds::reload) {
         std::string pckname = args[0];
-        Package* pck = Package::find(pckname);
+        Package::ptr pck = Package::find(pckname);
         if (pck == nullptr) {
             sock->write("error pkgnotfound");
             goto ifend;

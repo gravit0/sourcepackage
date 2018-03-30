@@ -16,7 +16,7 @@
 #include <string>
 #include <list>
 #include <exception>
-
+#include <memory>
 struct FileAction {
     std::string filename,target;
     int mode;
@@ -56,14 +56,16 @@ struct Package_dependencie
 class Package : public boost::noncopyable {
 private:
     Package() = default;
+    friend std::shared_ptr<Package>;
 public:
+    typedef std::shared_ptr<Package> ptr;
     std::string name;
     std::string author;
     std::string dir;
     std::string license;
     std::vector<Package_dependencie> dependencies;
     std::list<FileAction> files;
-    std::vector<Package*> dependencie;
+    std::vector<Package::ptr> dependencie;
     Package_Version version;
     bool isInstalled;
     bool isDependence;
@@ -76,10 +78,10 @@ public:
     void remove();
     void toIni(std::string dir);
     void clear();
-    static Package* find(const std::string& name);
-    static Package* unload(const std::string& name);
-    static int read_pack(const std::string dir, Package* pack);
-    static Package* get(const std::string dir);
+    static Package::ptr find(const std::string& name);
+    static Package::ptr unload(const std::string& name);
+    static int read_pack(const std::string dir, Package::ptr pack);
+    static Package::ptr get(const std::string dir);
     static std::mutex mutex;
 };
 
