@@ -20,20 +20,19 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 
-std::pair<void*,size_t> cmd_unknown(unsigned int, std::string)
+CallTable::CmdResult cmd_unknown(unsigned int, std::string)
 {
-    message_result* result = new message_result{0,message_result::ERROR_CMDINCORRECT,0,0};
     std::cerr << "UNKNOWN CMD" << std::endl;
-    return {result,sizeof(result)};
+    //return CallTable::CmdResult(CallTable::pair{result,sizeof(result)});
+    return CallTable::CmdResult(message_result::ERROR_CMDINCORRECT);
 }
-std::pair<void*,size_t> cmd_stop(unsigned int, std::string)
+CallTable::CmdResult cmd_stop(unsigned int, std::string)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     std::cerr << "STOP CMD" << std::endl;
     gsock->stop();
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_getpacks(unsigned int, std::string)
+CallTable::CmdResult cmd_getpacks(unsigned int, std::string)
 {
     char* buf;
     int bufsize = 0;
@@ -60,16 +59,15 @@ std::pair<void*,size_t> cmd_getpacks(unsigned int, std::string)
     m_result->code = message_result::OK;
     m_result->flag = 0;
     m_result->size = bufsize;
-    return {buf,bufsize + sizeof(message_result)};
+    return CallTable::CmdResult(CallTable::pair{buf,bufsize + sizeof(message_result)});
 }
-std::pair<void*,size_t> cmd_setns(unsigned int flag, std::string file)
+CallTable::CmdResult cmd_setns(unsigned int, std::string file)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     int fd = open(file.c_str(),O_RDONLY);
     setns(fd,0);
     close(fd);
     chdir("/");
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 };
 struct _module_version
 {
@@ -82,18 +80,17 @@ struct _module_api
 };
 _module_api module_api;
 bool module_api_init = false;
-std::pair<void*,size_t> cmd_loadmodule(unsigned int flag, std::string file)
+CallTable::CmdResult cmd_loadmodule(unsigned int, std::string file)
 {
     if(!module_api_init)
     {
         module_api.calltable = gsock->table.table;
         module_api_init = true;
     }
-    message_result* result = new message_result{0,message_result::OK,0,0};
     void* fd = dlopen(file.c_str(), RTLD_LAZY);
     if(fd == NULL) {
         perror("[MODULE ERROR]");
-        return {result,sizeof(result)};
+        return CallTable::CmdResult(message_result::ERROR_FILENOTFOUND);
     }
     _module_version (*sp_module_init)(_module_api);
     void (*sp_module_main)();
@@ -102,15 +99,14 @@ std::pair<void*,size_t> cmd_loadmodule(unsigned int flag, std::string file)
     if(v.api != 1)
     {
         std::cerr << "[MODULE] Unsupported API version: " << v.api << std::endl;
-        return {result,sizeof(result)};
+        return CallTable::CmdResult(message_result::ERROR_FILENOTFOUND);
     }
     sp_module_main = (void (*)())dlsym(fd,"sp_module_call_main");
     sp_module_main();
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 };
-std::pair<void*,size_t> cmd_install(unsigned int flag, std::string pckname)
+CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     try {
         Package* pck = Package::find(pckname);
         unsigned int flags = 0;
@@ -122,8 +118,7 @@ std::pair<void*,size_t> cmd_install(unsigned int flag, std::string pckname)
             if (pck == nullptr)
             {
                 std::cerr << "INSTALL CMD 2" << std::endl;
-                result->code = message_result::ERROR_PKGNOTFOUND;
-                return {result,sizeof(result)};
+                return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
             }
         }
         if (flag & cmdflags::install::fakeinstall) flags |= Package::flag_fakeInstall;
@@ -133,17 +128,18 @@ std::pair<void*,size_t> cmd_install(unsigned int flag, std::string pckname)
     }
     catch (package_exception* err)
     {
-        if (err->thiserr == package_exception::DependencieNotFound) result->code = message_result::ERROR_DEPNOTFOUND;
-        else if (err->thiserr == package_exception::ErrorParsePackage) result->code = message_result::ERROR_PKGINCORRECT;
-        else if (err->thiserr == package_exception::FileNotFound) result->code = message_result::ERROR_FILENOTFOUND;
+        message_result::results errcode;
+        if (err->thiserr == package_exception::DependencieNotFound) errcode = message_result::ERROR_DEPNOTFOUND;
+        else if (err->thiserr == package_exception::ErrorParsePackage) errcode = message_result::ERROR_PKGINCORRECT;
+        else if (err->thiserr == package_exception::FileNotFound) errcode = message_result::ERROR_FILENOTFOUND;
         delete err;
+        return CallTable::CmdResult(errcode);
     }
     std::cerr << "INSTALL CMD" << std::endl;
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_remove(unsigned int, std::string pckname)
+CallTable::CmdResult cmd_remove(unsigned int, std::string pckname)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     Package* pck = Package::find(pckname);
     if (pck != nullptr)
     {
@@ -151,68 +147,58 @@ std::pair<void*,size_t> cmd_remove(unsigned int, std::string pckname)
         event.sendEvent(EventListener::EVENT_REMOVE, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
     else {
-        result->code = message_result::ERROR_PKGNOTFOUND;
+        return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
     }
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_freeme(unsigned int, std::string) // Устаревшее
+CallTable::CmdResult cmd_freeme(unsigned int, std::string) // Устаревшее
 {
-    message_result* result = new message_result{0,message_result::ERROR_CMDINCORRECT,0,0};
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::ERROR_CMDINCORRECT);
 }
-std::pair<void*,size_t> cmd_fixdir(unsigned int, std::string)
+CallTable::CmdResult cmd_fixdir(unsigned int, std::string)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     chdir("/");
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_packinfo(unsigned int, std::string pckname)
+CallTable::CmdResult cmd_packinfo(unsigned int, std::string pckname)
 {
-
-    message_result* result;
     Package* pck = Package::find(pckname);
     if (pck == nullptr)
     {
-        result = new message_result{0,message_result::OK,0,0};
-        return {result,sizeof(result)};
+        return CallTable::CmdResult(message_result::OK);
     }
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_load(unsigned int, std::string pckname) // Устаревшее
+CallTable::CmdResult cmd_load(unsigned int, std::string pckname)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     Package* pck = Package::find(pckname);
     if(pck != nullptr)
     {
-        result->code = message_result::ERROR_PKGALREADYLOADED;
-        return {result,sizeof(result)};
+        return CallTable::CmdResult(message_result::ERROR_PKGALREADYLOADED);
     }
     else{
         Package* pck = Package::get(pckname);
         if(pck == nullptr)
         {
-            result->code = message_result::ERROR_PKGNOTFOUND;
-            return {result,sizeof(result)};
+            return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
         }
     }
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_unload(unsigned int, std::string pckname) // Устаревшее
+CallTable::CmdResult cmd_unload(unsigned int, std::string pckname)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     Package* pck = packs[pckname];
     delete pck;
     packs.erase(pckname);
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
-std::pair<void*,size_t> cmd_setconfig(unsigned int, std::string cfgdir)
+CallTable::CmdResult cmd_setconfig(unsigned int, std::string cfgdir)
 {
-    message_result* result = new message_result{0,message_result::OK,0,0};
     if (config_parse(cfgdir) == 1)
     {
-        result->code = message_result::ERROR_FILENOTFOUND;
+        return CallTable::CmdResult(message_result::ERROR_FILENOTFOUND);
     }
-    return {result,sizeof(result)};
+    return CallTable::CmdResult(message_result::OK);
 }
 void push_cmds()
 {

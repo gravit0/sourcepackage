@@ -51,7 +51,7 @@ std::vector<std::string> split(const std::string& cmd, const char splitchar) {
 }
 
 int config_parse(const std::string& filename) {
-    auto lam = [](std::string frist,std::string last,std::string category,bool isSet) {
+    auto lam = [](std::string frist,std::string last,std::string,bool) {
         if (frist == "rootdir" && !cfg.isSetRootdir) cfg.rootdir = last;
         else if (frist == "pkgdir" && !cfg.isSetPackdir) cfg.packsdir = last;
         else if (frist == "sockfile" && !cfg.isSetSockfile) cfg.sockfile = last;

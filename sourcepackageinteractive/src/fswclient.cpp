@@ -144,15 +144,14 @@ int main(int argc, char ** argv) {
         }
         else if(head.cmd == cmds::getpacks && result->size > 0)
         {
-            std::cerr << "T2" << std::endl;
             char* it = buf + sizeof(message_result);
             int len = 0;
-            while(it < buf +  result->size)
+            while(it < buf + sizeof(message_result) +  result->size - 1)
             {
-                len = strlen(it);
-                std::cout << "\x1b[33m" << std::string(it,len) << "\x1b[0m\t";
+                len = strlen(it+1);
+                std::cout << "\x1b[33m" << std::string(it+1,len) << "\x1b[0m\t";
                 if(len < 8) std::cout << "\t";
-                unsigned char flag = it[len+1];
+                unsigned char flag = *it;
                 if(flag & 1 << 0) std::cout << "\x1b[32m"  << "[installed]" << "\x1b[0m";
                 if(flag & 1 << 1) std::cout << "\x1b[31m"  << "[zombie]"  << "\x1b[0m";
                 if(flag & 1 << 2) std::cout << "\x1b[36m"  << "[dep]"  << "\x1b[0m";

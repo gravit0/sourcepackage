@@ -143,14 +143,23 @@ int Sock::exec(char* data, unsigned int size,Client* t)
         return -1;
     }
     auto result = table.table[head->cmd](head->cmdflags,cmd);
-    t->write(result);
-    if(result.second == sizeof(message_result))
-    {
-        delete static_cast<message_head*>(result.first);
+    if(std::holds_alternative<CallTable::pair>(result)) {
+        auto pair = std::get<CallTable::pair>(std::move(result));
+        t->write(pair);
+        if(pair.second == sizeof(message_result))
+        {
+            delete static_cast<message_head*>(pair.first);
+        }
+        else
+        {
+            delete[] static_cast<char*>(pair.first);
+        }
     }
     else
     {
-        delete[] static_cast<char*>(result.first);
+        auto results = std::get<message_result::results>(std::move(result));
+        message_result result{0,results,0,0};
+        t->write({&result,sizeof(result)});
     }
     return 0;
 }
