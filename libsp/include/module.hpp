@@ -1,4 +1,5 @@
-typedef std::pair<void*,size_t> (*CallCell)(unsigned int, std::string);
+#include "call_table.hpp"
+#include "Sock.hpp"
 struct _module_version
 {
     unsigned int version;
@@ -6,5 +7,5 @@ struct _module_version
 };
 struct _module_api
 {
-    CallCell* calltable;
+    CallTable::CallCell* calltable;
 };

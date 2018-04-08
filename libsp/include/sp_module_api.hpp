@@ -4,7 +4,6 @@
 #ifndef MODULE_API
 #error "define MODULE_API not found"
 #endif
-#include "libsp.hpp"
 #include "module.hpp"
 _module_api api;
 _module_version module_version;
