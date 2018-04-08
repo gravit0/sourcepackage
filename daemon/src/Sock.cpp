@@ -75,11 +75,11 @@ void Sock::loop() {
 }
 
 
-void Sock::loop_impl(multithread_loop l) {
+void Sock::loop_impl([[maybe_unused]] multithread_loop l) {
     while (loopEnable) {
         int t = wait(cfg.epoll_timeout);
         if (t < 0) {
-            logger->logg('C', "Error " + t);
+            logger->logg('C', "Wait error " + t);
             //loopEnable = false;
             continue;
         }
@@ -124,26 +124,21 @@ int Sock::exec(char* data, unsigned int size,Client* t)
 {
     if(size < sizeof(message_head))
     {
-        std::cerr << "Error parse 1" << std::endl;
+        logger->logg('W', "Command protocol error: 1");
         return -1;
     }
     message_head* head = (message_head*)data;
     if(size != sizeof(message_head) + head->size)
     {
-        std::cerr << "Error parse 2" << std::endl;
+        logger->logg('W', "Command protocol error: 2");
         return -1;
     }
     std::string cmd(data + sizeof(message_head), head->size);
-    std::cerr << "HEAD version " << (int) head->version << std::endl;
-    std::cerr << "HEAD size " << head->size << std::endl;
-    std::cerr << "HEAD cmd " << (int) static_cast<unsigned char>(head->cmd) << std::endl;
-    std::cerr << "HEAD flags " << static_cast<unsigned short>(head->flag) << std::endl;
-    if(head->size > 0) std::cerr << "STRING " << cmd << std::endl;
     //printf("Client sent: %s\n", rsock->buf);
     //lpfunc(head,cmd, rsock);
     if(head->cmd >= cmds::MAX_COMMANDS)
     {
-        std::cerr << "Error command" << std::endl;
+        logger->logg('W', "Command protocol error: unsupported command");
         return -1;
     }
     auto result = table.table[head->cmd](head->cmdflags,cmd);

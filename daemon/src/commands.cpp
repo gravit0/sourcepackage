@@ -24,13 +24,10 @@
 
 CallTable::CmdResult cmd_unknown(unsigned int, std::string)
 {
-    std::cerr << "UNKNOWN CMD" << std::endl;
-    //return CallTable::CmdResult(CallTable::pair{result,sizeof(result)});
     return CallTable::CmdResult(message_result::ERROR_CMDINCORRECT);
 }
 CallTable::CmdResult cmd_stop(unsigned int, std::string)
 {
-    std::cerr << "STOP CMD" << std::endl;
     gsock->stop();
     return CallTable::CmdResult(message_result::OK);
 }
@@ -47,7 +44,6 @@ CallTable::CmdResult cmd_getpacks(unsigned int, std::string)
     for (auto& i : packs)
     {
         Package::ptr p = i.second;
-        std::cerr << "PKG " << p->name << std::endl;
         char* c_str = p->name.data();
         int str_size = p->name.size();
         memcpy(it+1,c_str,str_size);
@@ -55,7 +51,6 @@ CallTable::CmdResult cmd_getpacks(unsigned int, std::string)
         *it = (p->isInstalled << 0) | (p->isStartInstall << 1) | (p->isDependence << 2);
         it+=str_size + 2;
     }
-    std::cerr << "PKGLIST " << packs.size() << std::endl;
     message_result* m_result = (message_result*) buf;
     m_result->version = 0;
     m_result->code = message_result::OK;
@@ -109,26 +104,21 @@ CallTable::CmdResult cmd_loadmodule(unsigned int, std::string file)
 };
 CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 {
-    using namespace std::chrono_literals;
     try {
         auto pck = Package::find(pckname);
-        std::cout << "FLAG:" << flag << std::endl;
         unsigned int flags = 0;
         if (!pck)
         {
-            std::cerr << cfg.packsdir + pckname << std::endl;
-            /*if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
-            else*/ pck = Package::get(cfg.packsdir + pckname);
+            if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
+            else pck = Package::get(cfg.packsdir + pckname);
             if (pck == nullptr)
             {
-                std::cerr << "INSTALL CMD 2" << std::endl;
                 return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
             }
         }
         if (flag & cmdflags::install::fakeinstall) flags |= Package::flag_fakeInstall;
         if (flag & cmdflags::install::nodep) flags |= Package::flag_nodep;
         (*pck)->install(flags);
-        //event.sendEvent(EventListener::EVENT_INSTALL, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
     catch (package_exception* err)
     {
@@ -139,8 +129,6 @@ CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
         delete err;
         return CallTable::CmdResult(errcode);
     }
-    std::cerr << "INSTALL CMD" << std::endl;
-    std::this_thread::sleep_for(20s);
     return CallTable::CmdResult(message_result::OK);
 }
 CallTable::CmdResult cmd_remove(unsigned int, std::string pckname)
@@ -149,16 +137,11 @@ CallTable::CmdResult cmd_remove(unsigned int, std::string pckname)
     if (pck)
     {
         (*pck)->remove();
-        //event.sendEvent(EventListener::EVENT_REMOVE, pck->dir + " " + (pck->isDaemon ? "d" : ""));
     }
     else {
         return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
     }
     return CallTable::CmdResult(message_result::OK);
-}
-CallTable::CmdResult cmd_freeme(unsigned int, std::string) // Устаревшее
-{
-    return CallTable::CmdResult(message_result::ERROR_CMDINCORRECT);
 }
 CallTable::CmdResult cmd_fixdir(unsigned int, std::string)
 {
@@ -222,108 +205,9 @@ void push_cmds()
     gsock->table.add(&cmd_unknown); // 14
     gsock->table.add(&cmd_unknown); // 15
     gsock->table.add(&cmd_fixdir);  // 16
-    gsock->table.add(&cmd_freeme);  // 17
+    gsock->table.add(&cmd_unknown);  // 17
     gsock->table.add(&cmd_unknown); // 18
     gsock->table.add(&cmd_unknown); // 19
     gsock->table.add(&cmd_setns);  // 20
-    gsock->table.add(&cmd_loadmodule);  // 20
+    gsock->table.add(&cmd_loadmodule);  // 21
 }
-/*
-void cmd_exec(message_head* head, std::string cmd, Client* sock) {
-    std::vector<std::string> args = split(cmd, ' ');
-    std::string basecmd = args[0];
-    if (head->cmd == cmds::install) {
-
-    } else if (head->cmd == cmds::findfile) {
-        std::string filename = args[0];
-        bool isBreak;
-        Package::ptr resultpck = nullptr;
-        for (auto &i : packs) {
-            isBreak = false;
-            Package::ptr p = i.second;
-            for (auto&j : p->files) {
-                if (j.filename == filename) {
-                    isBreak = true;
-                    break;
-                }
-            }
-            if (isBreak) {
-                resultpck = p;
-                break;
-            }
-        }
-        if(resultpck != nullptr) sock->write("0 " + resultpck->name);
-        else sock->write("error notfound");
-    } else if (head->cmd == cmds::exportfiles) {
-        std::string filename = args[0];
-        std::fstream f;
-        f.open(filename,std::ios_base::out);
-        for (auto &i : packs) {
-                Package::ptr p = i.second;
-                for (auto&j : p->files) {
-                    f << p->name + " " + j.filename << std::endl;
-                }
-        }
-        f.close();
-        sock->write("0");
-    }else if (head->cmd == cmds::packinfo) {
-        std::string pckname = args[0];
-        Package::ptr pck = Package::find(pckname);
-        if (pck == nullptr) {
-            sock->write("error pkgnotfound");
-            goto ifend;
-        }
-        std::string dep;
-        bool isStart = false;
-        for (auto &i : pck->dependencies) {
-            if (isStart) dep += ":";
-            dep += i.name;
-        }
-        sock->write("0 " + pck->name + " " + ((std::ostringstream&)(std::ostringstream() << pck->version.major)).str()
-                + " " + pck->dir + " " + pck->author + " " + dep);
-    } else if (head->cmd == cmds::remove) {
-
-    } else if (head->cmd == cmds::load) {
-        std::string pckdir = args[0];
-        Package::get(pckdir);
-        sock->write("0");
-    } else if (head->cmd == cmds::fixdir) {
-    } else if (head->cmd == cmds::add_listener) {
-        EventListener ev;
-        ev.client = sock;
-        ev.event = std::stoi(args[0]);
-        event.addListener(ev);
-        sock->write("0");
-        sock->isAutoClosable = false;
-    } else if (head->cmd == cmds::remove_listener) {
-        event.removeListener(sock);
-        sock->write("0");
-        sock->isAutoClosable = true;
-    }  else if (head->cmd == cmds::reload) {
-        std::string pckname = args[0];
-        Package::ptr pck = Package::find(pckname);
-        if (pck == nullptr) {
-            sock->write("error pkgnotfound");
-            goto ifend;
-        }
-        Package::read_pack(pck->dir, pck);
-        sock->write("0");
-    } else if (head->cmd == cmds::config) {
-        std::string param = args[0];
-        std::string value = args[1];
-        if (param == "rootdir") cfg.rootdir = value;
-        else if (param == "packsdir") cfg.packsdir = value;
-        else if (param == "socket_timeout") cfg.epoll_timeout = std::stoi(value);
-        sock->write("0");
-    } else if (head->cmd == cmds::setconfig) {
-
-    } else if (head->cmd == cmds::stop) {
-        gsock->stop();
-        sock->write("0");
-    } else {
-        sock->write("error commandnotfound");
-    }
-ifend:
-    ;
-}
-*/
