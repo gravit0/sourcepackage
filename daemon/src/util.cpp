@@ -201,7 +201,7 @@ norecursion:
     }
 
     int ini_parser_lam(std::string filename, std::function<void (std::string_view key, std::string_view value, std::string_view category, bool isSetCategory) > lam) {
-        std::string_view category;
+        std::string category;
         std::fstream f(filename, std::ios_base::in);
         if (!f) {
             return -1;

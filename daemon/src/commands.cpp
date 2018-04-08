@@ -44,6 +44,7 @@ CallTable::CmdResult cmd_getpacks(unsigned int, std::string)
     for (auto& i : packs)
     {
         Package::ptr p = i.second;
+        std::cerr << "PKG:" << p->name << std::endl;
         char* c_str = p->name.data();
         int str_size = p->name.size();
         memcpy(it+1,c_str,str_size);
@@ -105,13 +106,13 @@ CallTable::CmdResult cmd_loadmodule(unsigned int, std::string file)
 CallTable::CmdResult cmd_install(unsigned int flag, std::string pckname)
 {
     try {
-        auto pck = Package::find(pckname);
+        std::optional<Package::ptr> pck = Package::find(pckname);
         unsigned int flags = 0;
         if (!pck)
         {
             if (flag & cmdflags::install::full_path) pck = Package::get(pckname);
             else pck = Package::get(cfg.packsdir + pckname);
-            if (pck == nullptr)
+            if (!pck)
             {
                 return CallTable::CmdResult(message_result::ERROR_PKGNOTFOUND);
             }

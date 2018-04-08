@@ -225,14 +225,14 @@ int main(int argc, char** argv) {
             } else cfg.security.pid = getpid();
         }
         push_cmds();
-        std::thread th([]{
-            std::cerr << "THREAD RUN" << std::endl;
-            gsock->loop_impl(Sock::multithread_loop::SLAVE);
-            std::cerr << "THREAD END" << std::endl;
-        }
-        );
+        //std::thread th([]{
+        //    std::cerr << "THREAD RUN" << std::endl;
+        //    gsock->loop_impl(Sock::multithread_loop::SLAVE);
+        //    std::cerr << "THREAD END" << std::endl;
+        //}
+        //);
         gsock->loop();
-        th.join();
+        //th.join();
     } catch (socket_exception* e) {
         logger->logg('C', "An exception was thrown out. Information: " + std::string(e->what()));
         perror("[C] Failed reason:");
